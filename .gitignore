@@ -1,0 +1,21 @@
+# Data files
+data/*.h5
+data/*.json
+data/*.parquet
+checkpoints/
+grid_results_*.txt
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Environment
+.env
+*.log
+EOF
