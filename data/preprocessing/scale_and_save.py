@@ -84,7 +84,11 @@ for file_idx, fname in enumerate(files):
 
             # Scale — only observed values, NaN → 0 after scaling
             scaled        = scale(values.copy(), mean, std, vmin, vmax, minmax_idx, standard_idx)
+            scaled = np.nan_to_num(scaled, nan=0.0, posinf=0.0, neginf=0.0)
             scaled[mask == 0] = 0.0  # zero out unobserved after scaling
+            nan_after_scale = np.isnan(scaled) | np.isinf(scaled)
+            mask[nan_after_scale] = 0.0
+            scaled[nan_after_scale] = 0.0
 
             n_rows  = len(patient_df)
             current = split_counts[split_name]

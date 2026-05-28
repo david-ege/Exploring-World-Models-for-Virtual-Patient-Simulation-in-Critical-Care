@@ -1,7 +1,7 @@
 # Configs for data, moedels, training and locations
 import data.constants as constants
 
-DATA_PATH = '/home/bbe9928/thesis_work/hirid_jepa/data/Surgical_Neurological_subset.h5'
+DATA_PATH = '/home/bbe9928/thesis_work/hirid_jepa/data/Cardiovascular_common_subset.h5'
 CHECKPOINT_DIR = '/home/bbe9928/thesis_work/hirid_jepa/checkpoints'
 
 # Data
@@ -9,8 +9,8 @@ CONTEXT_STEPS = 36      # 3 hours of context
 TARGET_STEPS = 36       # 1 hour prediction
 
 # Variable subset — set to None to use all variables
-MEASUREMENT_SUBSET = constants.TOP_14_STATISTICAL_RELEVANCE_MEASUREMENT_IDX   # e.g. INFORMATIVE_MEASUREMENT_IDX
-TREATMENT_SUBSET   = constants.TOP_14_STATISTICAL_RELEVANCE_TREATMENT_IDX   # e.g. INFORMATIVE_TREATMENT_IDX
+MEASUREMENT_SUBSET = None   # e.g. INFORMATIVE_MEASUREMENT_IDX
+TREATMENT_SUBSET   = None   # e.g. INFORMATIVE_TREATMENT_IDX
 
 # Model
 ENCODER_DIM = 64

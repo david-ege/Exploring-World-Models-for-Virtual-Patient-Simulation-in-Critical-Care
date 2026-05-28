@@ -72,7 +72,7 @@ for b in range(len(batch_ns)):
     global_var += batch_ns[b] * (batch_vars[b] + (batch_means[b] - global_mean) ** 2)
 global_var /= np.maximum(total_n - 1, 1)
 global_std  = np.sqrt(global_var)
-global_std[global_std < 1e-8] = 1.0  # avoid division by zero for constant variables
+global_std[global_std < 1e-3]  # avoid division by zero for constant variables
 
 scaling_stats = {
     'columns':   feature_columns,

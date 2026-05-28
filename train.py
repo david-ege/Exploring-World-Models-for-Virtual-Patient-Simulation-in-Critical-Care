@@ -16,7 +16,7 @@ from models.gru_predictor import GRUPredictor
 from evaluate import evaluate
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Train GRU Predictor')
+    parser = argparse.ArgumentParser()
     parser.add_argument('--context',  type=int,   default=None)
     parser.add_argument('--target',   type=int,   default=None)
     parser.add_argument('--hidden',   type=int,   default=None)
@@ -26,6 +26,12 @@ def parse_args():
     parser.add_argument('--batch',    type=int,   default=None)
     parser.add_argument('--epochs',   type=int,   default=None)
     return parser.parse_args()
+
+def masked_mse(pred, target, mask):
+    """MSE only on observed target values."""
+    loss = (pred - target) ** 2 * mask
+    n    = mask.sum().clamp(min=1)
+    return loss.sum() / n
 
 def get_lr(epoch):
     if epoch < 5:
@@ -50,7 +56,7 @@ def train(override_cfg={}):
     print(f"Config: context={context_steps}, target={target_steps}, hidden={hidden_dim}, "
           f"layers={num_layers}, dropout={dropout}, lr={learning_rate}, batch={batch_size}")
 
-    date_str = dt.now().strftime("%d_%m_%H-%M")
+    date_str        = dt.now().strftime("%d_%m_%H-%M")
     checkpoint_name = f"gru_ctx{context_steps}_tgt{target_steps}_h{hidden_dim}_l{num_layers}_{date_str}.pt"
 
     train_dataset = HiRIDDataset(config.DATA_PATH, 'train', context_steps, target_steps,
@@ -81,12 +87,12 @@ def train(override_cfg={}):
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
                                  weight_decay=config.WEIGHT_DECAY)
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=get_lr)
-    criterion = nn.MSELoss()
 
-    best_val_loss = float('inf')
+    best_val_loss             = float('inf')
     epochs_without_improvement = 0
 
     for epoch in range(num_epochs):
+        # Training
         model.train()
         train_loss = 0.0
         for batch in train_loader:
@@ -95,10 +101,11 @@ def train(override_cfg={}):
             datetime     = batch['datetime'].to(device)
             demographics = batch['demographics'].to(device)
             target       = batch['target'].to(device)
+            target_mask  = batch['target_mask'].to(device)
 
             optimizer.zero_grad()
             pred = model(measurements, treatments, datetime, demographics)
-            loss = criterion(pred, target)
+            loss = masked_mse(pred, target, target_mask)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), config.GRAD_CLIP)
             optimizer.step()
@@ -106,6 +113,7 @@ def train(override_cfg={}):
 
         train_loss /= len(train_loader)
 
+        # Validation
         model.eval()
         val_loss = 0.0
         with torch.no_grad():
@@ -115,17 +123,17 @@ def train(override_cfg={}):
                 datetime     = batch['datetime'].to(device)
                 demographics = batch['demographics'].to(device)
                 target       = batch['target'].to(device)
+                target_mask  = batch['target_mask'].to(device)
 
-                pred = model(measurements, treatments, datetime, demographics)
-                val_loss += criterion(pred, target).item()
+                pred      = model(measurements, treatments, datetime, demographics)
+                val_loss += masked_mse(pred, target, target_mask).item()
 
         val_loss /= len(val_loader)
         scheduler.step()
-
         print(f"Epoch {epoch+1}/{num_epochs} — train loss: {train_loss:.4f}, val loss: {val_loss:.4f}")
 
         if val_loss < best_val_loss:
-            best_val_loss = val_loss
+            best_val_loss              = val_loss
             epochs_without_improvement = 0
             torch.save({
                 'model_state_dict': model.state_dict(),
@@ -152,7 +160,6 @@ def train(override_cfg={}):
     print(f"\n--- Training complete. Best val loss: {best_val_loss:.4f} ---")
     print(f"--- Running evaluation on: {checkpoint_name} ---\n")
     evaluate(checkpoint_name)
-
     return best_val_loss
 
 if __name__ == '__main__':
