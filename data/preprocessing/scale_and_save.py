@@ -9,6 +9,26 @@ import os
 import json
 import h5py
 
+def compute_delta_t_patient(patient_mask, n_cols):
+    """Compute delta_t for one patient, all columns."""
+    n_steps = patient_mask.shape[0]
+    delta   = np.zeros((n_steps, n_cols), dtype=np.float32)
+    last_obs = np.full(n_cols, -1, dtype=np.int32)
+
+    for t in range(n_steps):
+        observed          = patient_mask[t] == 1
+        not_obs           = ~observed
+        never             = not_obs & (last_obs == -1)
+        seen              = not_obs & (last_obs >= 0)
+
+        delta[t, observed] = 0.0
+        last_obs[observed] = t
+        delta[t, never]    = t + 1
+        delta[t, seen]     = t - last_obs[seen]
+
+    return delta
+
+
 common_stage_path = '/home/bbe9928/HIRID-ICU-Benchmark/real_data_wdir/common_stage'
 split_path        = '/home/bbe9928/HIRID-ICU-Benchmark/preprocessing/resources/split.tsv'
 stats_path        = '/home/bbe9928/thesis_work/hirid_jepa/data/scaling_stats.json'
@@ -51,6 +71,7 @@ split_data    = {'train': [], 'val': [], 'test': []}
 split_masks   = {'train': [], 'val': [], 'test': []}
 split_windows = {'train': [], 'val': [], 'test': []}
 split_counts  = {'train': 0,  'val': 0,  'test': 0}
+split_deltas  = {'train': [], 'val': [], 'test': []}
 
 def scale(values, mean, std, vmin, vmax, minmax_idx, standard_idx):
     scaled = np.zeros_like(values)
@@ -82,19 +103,22 @@ for file_idx, fname in enumerate(files):
             values     = patient_df[feature_columns].values.astype(np.float32)
             mask       = (~np.isnan(values)).astype(np.float32)
 
-            # Scale — only observed values, NaN → 0 after scaling
-            scaled        = scale(values.copy(), mean, std, vmin, vmax, minmax_idx, standard_idx)
-            scaled = np.nan_to_num(scaled, nan=0.0, posinf=0.0, neginf=0.0)
-            scaled[mask == 0] = 0.0  # zero out unobserved after scaling
+            scaled     = scale(values.copy(), mean, std, vmin, vmax, minmax_idx, standard_idx)
+            scaled     = np.nan_to_num(scaled, nan=0.0, posinf=0.0, neginf=0.0)
+            scaled[mask == 0] = 0.0
             nan_after_scale = np.isnan(scaled) | np.isinf(scaled)
             mask[nan_after_scale] = 0.0
             scaled[nan_after_scale] = 0.0
+
+            # Compute delta_t over all columns
+            delta_t    = compute_delta_t_patient(mask, len(feature_columns))
 
             n_rows  = len(patient_df)
             current = split_counts[split_name]
 
             split_data[split_name].append(scaled)
             split_masks[split_name].append(mask)
+            split_deltas[split_name].append(delta_t)
             split_windows[split_name].append([current, current + n_rows, pid])
             split_counts[split_name] += n_rows
 
@@ -113,11 +137,13 @@ with h5py.File(output_path, 'w') as out:
         data_arr    = np.concatenate(split_data[split_name],  axis=0).astype(np.float32)
         mask_arr    = np.concatenate(split_masks[split_name],  axis=0).astype(np.float32)
         windows_arr = np.array(split_windows[split_name],      dtype=np.int64)
+        delta_arr = np.concatenate(split_deltas[split_name], axis=0).astype(np.float32)
 
         out.create_dataset(f'data/{split_name}',    data=data_arr,    compression='lzf')
         out.create_dataset(f'mask/{split_name}',    data=mask_arr,    compression='lzf')
         out.create_dataset(f'windows/{split_name}', data=windows_arr)
-
+        out.create_dataset(f'delta_t/{split_name}', data=delta_arr, compression='lzf')
+        print(f"{split_name}: delta_t shape={delta_arr.shape}")
         print(f"{split_name}: {len(split_windows[split_name])} patients, "
               f"{len(data_arr)} timesteps, data shape={data_arr.shape}")
 

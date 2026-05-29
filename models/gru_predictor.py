@@ -13,8 +13,9 @@ class GRUPredictor(nn.Module):
         self.target_steps = target_steps
         self.n_measurements = n_measurements
 
-        # Raw input: measurements + treatments + datetime
-        gru_input_dim = n_measurements + n_treatments + 1
+        # Raw input: measurements + measurement_mask + time_since_last_obs + treatments + datetime
+        gru_input_dim = n_measurements * 3 + n_treatments + 1
+
 
         self.gru = nn.GRU(
             input_size=gru_input_dim,
@@ -35,14 +36,12 @@ class GRUPredictor(nn.Module):
             nn.Linear(hidden_dim, n_measurements * target_steps)
         )
 
-    def forward(self, measurements, treatments, datetime, demographics):
-        B = measurements.shape[0]
-
-        x = torch.cat([measurements, treatments, datetime], dim=-1)
-
+    def forward(self, measurements, treatments, datetime, demographics, 
+                context_mask, delta_t):
+        B  = measurements.shape[0]
+        x  = torch.cat([measurements, context_mask, delta_t, treatments, datetime], dim=-1)
         h0 = self.demo_proj(demographics)
         h0 = h0.unsqueeze(0).repeat(self.num_layers, 1, 1)
-
         _, h_n = self.gru(x, h0)
         last_hidden = h_n[-1]
         out = self.output_proj(last_hidden)

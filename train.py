@@ -5,6 +5,7 @@ sys.path.append('/home/bbe9928/thesis_work/hirid_jepa')
 import os
 import argparse
 from datetime import datetime as dt
+import time
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -93,6 +94,7 @@ def train(override_cfg={}):
 
     for epoch in range(num_epochs):
         # Training
+        epoch_start = time.time()
         model.train()
         train_loss = 0.0
         for batch in train_loader:
@@ -104,7 +106,7 @@ def train(override_cfg={}):
             target_mask  = batch['target_mask'].to(device)
 
             optimizer.zero_grad()
-            pred = model(measurements, treatments, datetime, demographics)
+            pred = model(measurements, treatments, datetime, demographics, batch['context_mask'].to(device),batch['delta_t'].to(device))
             loss = masked_mse(pred, target, target_mask)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), config.GRAD_CLIP)
@@ -125,13 +127,16 @@ def train(override_cfg={}):
                 target       = batch['target'].to(device)
                 target_mask  = batch['target_mask'].to(device)
 
-                pred      = model(measurements, treatments, datetime, demographics)
+                pred = model(measurements, treatments, datetime, demographics, batch['context_mask'].to(device),batch['delta_t'].to(device))
                 val_loss += masked_mse(pred, target, target_mask).item()
 
         val_loss /= len(val_loader)
         scheduler.step()
-        print(f"Epoch {epoch+1}/{num_epochs} — train loss: {train_loss:.4f}, val loss: {val_loss:.4f}")
-
+        epoch_time = time.time() - epoch_start
+        remaining  = (num_epochs - epoch - 1) * epoch_time
+        print(f"Epoch {epoch+1}/{num_epochs} — train loss: {train_loss:.4f}, val loss: {val_loss:.4f} "
+          f"| {epoch_time:.0f}s/epoch | ETA: {remaining/60:.0f}min")
+        
         if val_loss < best_val_loss:
             best_val_loss              = val_loss
             epochs_without_improvement = 0
@@ -147,6 +152,8 @@ def train(override_cfg={}):
                     'n_treatments':       n_treatments,
                     'measurement_subset': config.MEASUREMENT_SUBSET,
                     'treatment_subset':   config.TREATMENT_SUBSET,
+                    'uses_context_mask': True,
+                    'uses_delta_t':      True,
                 }
             }, f"{config.CHECKPOINT_DIR}/{checkpoint_name}")
             print(f" Saved: {checkpoint_name}")

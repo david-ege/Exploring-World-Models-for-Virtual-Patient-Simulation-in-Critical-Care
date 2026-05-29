@@ -86,10 +86,22 @@ def evaluate(checkpoint_name=None):
             demographics = batch['demographics'].to(device)
             target       = batch['target'].to(device)
             target_mask  = batch['target_mask'].to(device)
+            context_mask = batch['context_mask'].to(device)
+            delta_t      = batch['delta_t'].to(device)
 
-            pred      = model(measurements, treatments, datetime, demographics)
+            uses_context_mask = cfg.get('uses_context_mask', False)
+            uses_delta_t      = cfg.get('uses_delta_t', False)
+
+            if uses_delta_t:
+                pred = model(measurements, treatments, datetime, demographics,
+                            context_mask, delta_t)
+            elif uses_context_mask:
+                pred = model(measurements, treatments, datetime, demographics,
+                            context_mask)
+            else:
+                pred = model(measurements, treatments, datetime, demographics)
+
             last_step = measurements[:, -1:, :].repeat(1, cfg['target_steps'], 1)
-
             all_preds.append(pred.cpu().numpy())
             all_targets.append(target.cpu().numpy())
             all_last.append(last_step.cpu().numpy())
