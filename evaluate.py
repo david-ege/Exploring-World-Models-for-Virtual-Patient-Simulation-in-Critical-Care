@@ -11,8 +11,9 @@ import h5py
 import hdf5plugin
 from torch.utils.data import DataLoader
 from sklearn.metrics import roc_auc_score, mean_absolute_error
-
-import config
+import json
+from datetime import datetime as dt
+import config as config
 from data.dataset import HiRIDDataset
 from data.constants import MEASUREMENT_IDX, N_MEASUREMENTS, N_TREATMENTS
 from models.gru_predictor import GRUPredictor
@@ -27,7 +28,7 @@ def get_checkpoint(checkpoint_dir, name=None):
     return max(files, key=os.path.getmtime)
 
 
-def evaluate(checkpoint_name=None):
+def evaluate(checkpoint_name=None, results_dir=None):
     device = torch.device(config.DEVICE if torch.cuda.is_available() else 'cpu')
 
     checkpoint_path = get_checkpoint(config.CHECKPOINT_DIR, checkpoint_name)
@@ -44,15 +45,16 @@ def evaluate(checkpoint_name=None):
         n_m = len(config.MEASUREMENT_SUBSET) if config.MEASUREMENT_SUBSET else N_MEASUREMENTS
         n_t = len(config.TREATMENT_SUBSET)   if config.TREATMENT_SUBSET   else N_TREATMENTS
         cfg = {
-            'hidden_dim':         config.HIDDEN_DIM,
-            'num_layers':         config.NUM_LAYERS,
-            'dropout':            config.DROPOUT,
+            'hidden_dim':         config.PRED_HIDDEN_DIM,
+            'num_layers':         config.PRED_NUM_LAYERS,
+            'dropout':            config.PRED_DROPOUT,
             'target_steps':       config.TARGET_STEPS,
-            'encoder_dim':        config.ENCODER_DIM,
+            'encoder_dim':        config.PRED_ENCODER_DIM,
             'n_measurements':     n_m,
             'n_treatments':       n_t,
             'measurement_subset': config.MEASUREMENT_SUBSET,
             'treatment_subset':   config.TREATMENT_SUBSET,
+
         }
 
     test_dataset = HiRIDDataset(
@@ -61,9 +63,11 @@ def evaluate(checkpoint_name=None):
         measurement_subset=cfg['measurement_subset'],
         treatment_subset=cfg['treatment_subset']
     )
-    test_loader = DataLoader(test_dataset, batch_size=config.BATCH_SIZE,
+    test_loader = DataLoader(test_dataset, batch_size=config.PRED_BATCH_SIZE,
                              shuffle=False, num_workers=4)
 
+    use_context_mask = cfg.get('uses_context_mask', False)
+    use_delta_t      = cfg.get('uses_delta_t', False)
     model = GRUPredictor(
         hidden_dim=cfg['hidden_dim'],
         num_layers=cfg['num_layers'],
@@ -71,7 +75,9 @@ def evaluate(checkpoint_name=None):
         target_steps=cfg['target_steps'],
         encoder_dim=cfg['encoder_dim'],
         n_measurements=cfg['n_measurements'],
-        n_treatments=cfg['n_treatments']
+        n_treatments=cfg['n_treatments'],
+        use_context_mask=use_context_mask,
+        use_delta_t=use_delta_t
     ).to(device)
     model.load_state_dict(state_dict)
     model.eval()
@@ -89,18 +95,8 @@ def evaluate(checkpoint_name=None):
             context_mask = batch['context_mask'].to(device)
             delta_t      = batch['delta_t'].to(device)
 
-            uses_context_mask = cfg.get('uses_context_mask', False)
-            uses_delta_t      = cfg.get('uses_delta_t', False)
-
-            if uses_delta_t:
-                pred = model(measurements, treatments, datetime, demographics,
-                            context_mask, delta_t)
-            elif uses_context_mask:
-                pred = model(measurements, treatments, datetime, demographics,
-                            context_mask)
-            else:
-                pred = model(measurements, treatments, datetime, demographics)
-
+            pred = model(measurements, treatments, datetime, demographics,context_mask if use_context_mask else None,delta_t if use_delta_t else None)
+            
             last_step = measurements[:, -1:, :].repeat(1, cfg['target_steps'], 1)
             all_preds.append(pred.cpu().numpy())
             all_targets.append(target.cpu().numpy())
@@ -137,12 +133,13 @@ def evaluate(checkpoint_name=None):
     for i, name in enumerate(measurement_names):
         obs_idx = masks_flat[:, i] == 1
         n_obs   = obs_idx.sum()
-
+        if n_obs < 10:
+            continue
 
         m_mae = mean_absolute_error(targets_flat[obs_idx, i], preds_flat[obs_idx, i])
         p_mae = mean_absolute_error(targets_flat[obs_idx, i], last_flat[obs_idx, i])
 
-        if n_obs < 10 or p_mae < 1e-6:  # skip variables with too few observations
+        if  p_mae < 1e-6:
             continue
 
         model_maes.append(m_mae)
@@ -176,6 +173,47 @@ def evaluate(checkpoint_name=None):
     print(f"Variables beating persistence: {(improvement > 0).sum()} / {len(names)}")
     print(f"Best variable:  {names[ranked[0]]} ({improvement[ranked[0]]:.1f}% improvement)")
     print(f"Worst variable: {names[ranked[-1]]} ({improvement[ranked[-1]]:.1f}%)")
+
+    #save to JSON
+    results = {
+        'checkpoint': checkpoint_path,
+        'timestamp': dt.now().strftime("%d_%m_%Y_%H-%M"),
+        'config': cfg,
+        'summary': {
+            'n_variables_evaluated': len(names),
+            'n_beating_persistence': int((improvement > 0).sum()),
+            'overall_model_mae': float(model_maes.mean()),
+            'overall_persistence_mae': float(pers_maes.mean()),
+            'mean_improvement': float(np.nanmean(improvement)),
+            'model_auroc': None,
+            'persistence_auroc': None,
+        },
+        'per_variable': [
+            {
+                'name': names[i],
+                'model_mae': float(model_maes[i]),
+                'persistence_mae': float(pers_maes[i]),
+                'improvement_pct': float(improvement[i]) if not np.isnan(improvement[i]) else None,
+                'n_observations': int(obs_counts[i]),
+                'beats_persistence': bool(improvement[i] > 0) if not np.isnan(improvement[i]) else None,
+            }
+            for i in ranked
+        ]
+    }
+
+    if results_dir is None:
+        results_dir = os.path.join(os.path.dirname(config.CHECKPOINT_DIR), 'results')
+    os.makedirs(results_dir, exist_ok=True)
+
+    # Individual run result file
+    result_filename = checkpoint_name.replace('.pt', '_eval.json') if checkpoint_name else \
+                      f"eval_{dt.now().strftime('%d_%m_%H-%M')}.json"
+    result_path = os.path.join(results_dir, result_filename)
+    with open(result_path, 'w') as f:
+        json.dump(results, f, indent=2)
+    print(f"\nResults saved to {result_path}")
+
+    return results
 
 
 if __name__ == '__main__':

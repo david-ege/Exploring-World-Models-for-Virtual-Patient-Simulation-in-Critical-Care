@@ -1,0 +1,692 @@
+Using device: cuda
+Config: context=36, target=36, hidden=128, layers=1, dropout=0.3, lr=0.0001, batch=64
+Epoch 1/30 — train loss: 0.7069, val loss: 0.7197 | 222s/epoch | ETA: 107min
+ Saved: gru_ctx36_tgt36_h128_l1_29_05_18-56.pt
+Epoch 2/30 — train loss: 0.5437, val loss: 0.6595 | 224s/epoch | ETA: 104min
+ Saved: gru_ctx36_tgt36_h128_l1_29_05_18-56.pt
+Epoch 3/30 — train loss: 0.5310, val loss: 0.6432 | 226s/epoch | ETA: 102min
+ Saved: gru_ctx36_tgt36_h128_l1_29_05_18-56.pt
+Epoch 4/30 — train loss: 0.5392, val loss: 0.6438 | 224s/epoch | ETA: 97min
+ No improvement (1/7)
+Epoch 5/30 — train loss: 0.5494, val loss: 0.6348 | 222s/epoch | ETA: 92min
+ Saved: gru_ctx36_tgt36_h128_l1_29_05_18-56.pt
+Epoch 6/30 — train loss: 0.5538, val loss: 0.6533 | 225s/epoch | ETA: 90min
+ No improvement (1/7)
+Epoch 7/30 — train loss: 0.5556, val loss: 0.6465 | 224s/epoch | ETA: 86min
+ No improvement (2/7)
+Epoch 8/30 — train loss: 0.5568, val loss: 0.6444 | 192s/epoch | ETA: 70min
+ No improvement (3/7)
+Epoch 9/30 — train loss: 0.5572, val loss: 0.6362 | 192s/epoch | ETA: 67min
+ No improvement (4/7)
+Epoch 10/30 — train loss: 0.5574, val loss: 0.6434 | 193s/epoch | ETA: 64min
+ No improvement (5/7)
+Epoch 11/30 — train loss: 0.5575, val loss: 0.6360 | 193s/epoch | ETA: 61min
+ No improvement (6/7)
+Epoch 12/30 — train loss: 0.5574, val loss: 0.6338 | 193s/epoch | ETA: 58min
+ Saved: gru_ctx36_tgt36_h128_l1_29_05_18-56.pt
+Epoch 13/30 — train loss: 0.5574, val loss: 0.6456 | 193s/epoch | ETA: 55min
+ No improvement (1/7)
+Epoch 14/30 — train loss: 0.5575, val loss: 0.6386 | 215s/epoch | ETA: 57min
+ No improvement (2/7)
+Epoch 15/30 — train loss: 0.5574, val loss: 0.6333 | 192s/epoch | ETA: 48min
+ Saved: gru_ctx36_tgt36_h128_l1_29_05_18-56.pt
+Epoch 16/30 — train loss: 0.5574, val loss: 0.6396 | 191s/epoch | ETA: 44min
+ No improvement (1/7)
+Epoch 17/30 — train loss: 0.5572, val loss: 0.6359 | 192s/epoch | ETA: 42min
+ No improvement (2/7)
+Epoch 18/30 — train loss: 0.5575, val loss: 0.6440 | 192s/epoch | ETA: 38min
+ No improvement (3/7)
+Epoch 19/30 — train loss: 0.5571, val loss: 0.6398 | 193s/epoch | ETA: 35min
+ No improvement (4/7)
+Epoch 20/30 — train loss: 0.5570, val loss: 0.6394 | 193s/epoch | ETA: 32min
+ No improvement (5/7)
+Epoch 21/30 — train loss: 0.5569, val loss: 0.6450 | 192s/epoch | ETA: 29min
+ No improvement (6/7)
+Epoch 22/30 — train loss: 0.5573, val loss: 0.6402 | 195s/epoch | ETA: 26min
+ No improvement (7/7)
+ Early stopping at epoch 22
+
+--- Training complete. Best val loss: 0.6333 ---
+--- Running evaluation on: gru_ctx36_tgt36_h128_l1_29_05_18-56.pt ---
+
+Loading checkpoint: /home/bbe9928/thesis_work/hirid_jepa/checkpoints/gru_ctx36_tgt36_h128_l1_29_05_18-56.pt
+
+=== Per-Variable MAE (observed timesteps only) ===
+Variables evaluated: 82 (skipped variables with <10 observations)
+Overall MAE  — model: 0.6571, persistence: 0.6295
+Mean improvement: -7.8%
+
+Top 10 best:
+  ABPm                                model=0.4124  pers=0.4577  imp=9.9%  n=11191534
+  a_PO2                               model=0.5297  pers=0.5695  imp=7.0%  n=136803
+  OUTurine/h                          model=0.6476  pers=0.6873  imp=5.8%  n=291452
+  packed red blood cells              model=0.2643  pers=0.2785  imp=5.1%  n=23978
+  bilirubine, total                   model=0.3880  pers=0.4016  imp=3.4%  n=20439
+  platelet count                      model=0.6177  pers=0.6370  imp=3.0%  n=50199
+  a_pCO2                              model=0.6261  pers=0.6454  imp=3.0%  n=135687
+  Mg_lab                              model=0.7810  pers=0.7990  imp=2.2%  n=34152
+  OUT                                 model=0.2894  pers=0.2941  imp=1.6%  n=712130
+  a_HCO3-                             model=0.7260  pers=0.7360  imp=1.4%  n=142211
+
+Top 10 worst:
+  HR                                  model=0.3500  pers=0.2936  imp=-19.2%  n=11608494
+  PAPs                                model=0.4987  pers=0.4030  imp=-23.7%  n=2973105
+  ETCO2                               model=0.4391  pers=0.3453  imp=-27.2%  n=6618028
+  ST1                                 model=0.3790  pers=0.2910  imp=-30.2%  n=8197078
+  SvO2(m)                             model=0.6954  pers=0.4778  imp=-45.6%  n=2952533
+  CO                                  model=0.5315  pers=0.3621  imp=-46.8%  n=2909618
+  ST2                                 model=0.4863  pers=0.2795  imp=-74.0%  n=4941520
+  ICP                                 model=0.6298  pers=0.3545  imp=-77.6%  n=247982
+  ST3                                 model=0.4941  pers=0.2774  imp=-78.1%  n=4612545
+  T Central                           model=0.5588  pers=0.2315  imp=-141.4%  n=3269778
+
+=== Summary ===
+Variables beating persistence: 31 / 82
+Best variable:  ABPm (9.9% improvement)
+Worst variable: T Central (-141.4%)
+
+Results saved to results/grid_search_29_05_1856/gru_ctx36_tgt36_h128_l1_29_05_18-56_eval.json
+Using device: cuda
+Config: context=36, target=36, hidden=128, layers=1, dropout=0.4, lr=0.0001, batch=64
+Epoch 1/30 — train loss: 0.7082, val loss: 0.7351 | 235s/epoch | ETA: 114min
+ Saved: gru_ctx36_tgt36_h128_l1_29_05_20-13.pt
+Epoch 2/30 — train loss: 0.5438, val loss: 0.6692 | 206s/epoch | ETA: 96min
+ Saved: gru_ctx36_tgt36_h128_l1_29_05_20-13.pt
+Epoch 3/30 — train loss: 0.5302, val loss: 0.6466 | 197s/epoch | ETA: 88min
+ Saved: gru_ctx36_tgt36_h128_l1_29_05_20-13.pt
+Epoch 4/30 — train loss: 0.5378, val loss: 0.6466 | 214s/epoch | ETA: 93min
+ No improvement (1/7)
+Epoch 5/30 — train loss: 0.5480, val loss: 0.6443 | 202s/epoch | ETA: 84min
+ Saved: gru_ctx36_tgt36_h128_l1_29_05_20-13.pt
+Epoch 6/30 — train loss: 0.5526, val loss: 0.6434 | 215s/epoch | ETA: 86min
+ Saved: gru_ctx36_tgt36_h128_l1_29_05_20-13.pt
+Epoch 7/30 — train loss: 0.5552, val loss: 0.6453 | 202s/epoch | ETA: 77min
+ No improvement (1/7)
+Epoch 8/30 — train loss: 0.5566, val loss: 0.6401 | 192s/epoch | ETA: 70min
+ Saved: gru_ctx36_tgt36_h128_l1_29_05_20-13.pt
+Epoch 9/30 — train loss: 0.5570, val loss: 0.6385 | 190s/epoch | ETA: 67min
+ Saved: gru_ctx36_tgt36_h128_l1_29_05_20-13.pt
+Epoch 10/30 — train loss: 0.5574, val loss: 0.6431 | 193s/epoch | ETA: 64min
+ No improvement (1/7)
+Epoch 11/30 — train loss: 0.5580, val loss: 0.6352 | 194s/epoch | ETA: 62min
+ Saved: gru_ctx36_tgt36_h128_l1_29_05_20-13.pt
+Epoch 12/30 — train loss: 0.5579, val loss: 0.6357 | 252s/epoch | ETA: 76min
+ No improvement (1/7)
+Epoch 13/30 — train loss: 0.5577, val loss: 0.6420 | 207s/epoch | ETA: 59min
+ No improvement (2/7)
+Epoch 14/30 — train loss: 0.5580, val loss: 0.6439 | 208s/epoch | ETA: 55min
+ No improvement (3/7)
+Epoch 15/30 — train loss: 0.5580, val loss: 0.6439 | 194s/epoch | ETA: 48min
+ No improvement (4/7)
+Epoch 16/30 — train loss: 0.5581, val loss: 0.6566 | 200s/epoch | ETA: 47min
+ No improvement (5/7)
+Epoch 17/30 — train loss: 0.5579, val loss: 0.6407 | 193s/epoch | ETA: 42min
+ No improvement (6/7)
+Epoch 18/30 — train loss: 0.5578, val loss: 0.6333 | 204s/epoch | ETA: 41min
+ Saved: gru_ctx36_tgt36_h128_l1_29_05_20-13.pt
+Epoch 19/30 — train loss: 0.5577, val loss: 0.6476 | 230s/epoch | ETA: 42min
+ No improvement (1/7)
+Epoch 20/30 — train loss: 0.5575, val loss: 0.6423 | 229s/epoch | ETA: 38min
+ No improvement (2/7)
+Epoch 21/30 — train loss: 0.5578, val loss: 0.6360 | 240s/epoch | ETA: 36min
+ No improvement (3/7)
+Epoch 22/30 — train loss: 0.5575, val loss: 0.6372 | 197s/epoch | ETA: 26min
+ No improvement (4/7)
+Epoch 23/30 — train loss: 0.5579, val loss: 0.6383 | 246s/epoch | ETA: 29min
+ No improvement (5/7)
+Epoch 24/30 — train loss: 0.5577, val loss: 0.6437 | 233s/epoch | ETA: 23min
+ No improvement (6/7)
+Epoch 25/30 — train loss: 0.5578, val loss: 0.6452 | 207s/epoch | ETA: 17min
+ No improvement (7/7)
+ Early stopping at epoch 25
+
+--- Training complete. Best val loss: 0.6333 ---
+--- Running evaluation on: gru_ctx36_tgt36_h128_l1_29_05_20-13.pt ---
+
+Loading checkpoint: /home/bbe9928/thesis_work/hirid_jepa/checkpoints/gru_ctx36_tgt36_h128_l1_29_05_20-13.pt
+
+=== Per-Variable MAE (observed timesteps only) ===
+Variables evaluated: 82 (skipped variables with <10 observations)
+Overall MAE  — model: 0.6580, persistence: 0.6295
+Mean improvement: -8.1%
+
+Top 10 best:
+  ABPm                                model=0.4094  pers=0.4577  imp=10.6%  n=11191534
+  a_PO2                               model=0.5265  pers=0.5695  imp=7.5%  n=136803
+  OUTurine/h                          model=0.6437  pers=0.6873  imp=6.3%  n=291452
+  packed red blood cells              model=0.2660  pers=0.2785  imp=4.5%  n=23978
+  a_pCO2                              model=0.6241  pers=0.6454  imp=3.3%  n=135687
+  platelet count                      model=0.6168  pers=0.6370  imp=3.2%  n=50199
+  OUT                                 model=0.2854  pers=0.2941  imp=3.0%  n=712130
+  bilirubine, total                   model=0.3920  pers=0.4016  imp=2.4%  n=20439
+  Mg_lab                              model=0.7802  pers=0.7990  imp=2.4%  n=34152
+  a_HCO3-                             model=0.7273  pers=0.7360  imp=1.2%  n=142211
+
+Top 10 worst:
+  HR                                  model=0.3546  pers=0.2936  imp=-20.8%  n=11608494
+  PAPs                                model=0.5043  pers=0.4030  imp=-25.1%  n=2973105
+  ETCO2                               model=0.4386  pers=0.3453  imp=-27.0%  n=6618028
+  ST1                                 model=0.3905  pers=0.2910  imp=-34.2%  n=8197078
+  SvO2(m)                             model=0.6932  pers=0.4778  imp=-45.1%  n=2952533
+  CO                                  model=0.5441  pers=0.3621  imp=-50.3%  n=2909618
+  ST2                                 model=0.4880  pers=0.2795  imp=-74.6%  n=4941520
+  ICP                                 model=0.6333  pers=0.3545  imp=-78.6%  n=247982
+  ST3                                 model=0.5087  pers=0.2774  imp=-83.4%  n=4612545
+  T Central                           model=0.5639  pers=0.2315  imp=-143.6%  n=3269778
+
+=== Summary ===
+Variables beating persistence: 34 / 82
+Best variable:  ABPm (10.6% improvement)
+Worst variable: T Central (-143.6%)
+
+Results saved to results/grid_search_29_05_1856/gru_ctx36_tgt36_h128_l1_29_05_20-13_eval.json
+Using device: cuda
+Config: context=36, target=36, hidden=256, layers=1, dropout=0.3, lr=0.0001, batch=64
+Epoch 1/30 — train loss: 0.6165, val loss: 0.6625 | 192s/epoch | ETA: 93min
+ Saved: gru_ctx36_tgt36_h256_l1_29_05_21-43.pt
+Epoch 2/30 — train loss: 0.5021, val loss: 0.6312 | 216s/epoch | ETA: 101min
+ Saved: gru_ctx36_tgt36_h256_l1_29_05_21-43.pt
+Epoch 3/30 — train loss: 0.5061, val loss: 0.6197 | 190s/epoch | ETA: 86min
+ Saved: gru_ctx36_tgt36_h256_l1_29_05_21-43.pt
+Epoch 4/30 — train loss: 0.5177, val loss: 0.6219 | 188s/epoch | ETA: 81min
+ No improvement (1/7)
+Epoch 5/30 — train loss: 0.5276, val loss: 0.6352 | 189s/epoch | ETA: 79min
+ No improvement (2/7)
+Epoch 6/30 — train loss: 0.5304, val loss: 0.6270 | 188s/epoch | ETA: 75min
+ No improvement (3/7)
+Epoch 7/30 — train loss: 0.5317, val loss: 0.6159 | 199s/epoch | ETA: 76min
+ Saved: gru_ctx36_tgt36_h256_l1_29_05_21-43.pt
+Epoch 8/30 — train loss: 0.5322, val loss: 0.6281 | 189s/epoch | ETA: 69min
+ No improvement (1/7)
+Epoch 9/30 — train loss: 0.5322, val loss: 0.6224 | 200s/epoch | ETA: 70min
+ No improvement (2/7)
+Epoch 10/30 — train loss: 0.5326, val loss: 0.6204 | 212s/epoch | ETA: 71min
+ No improvement (3/7)
+Epoch 11/30 — train loss: 0.5321, val loss: 0.6224 | 200s/epoch | ETA: 63min
+ No improvement (4/7)
+Epoch 12/30 — train loss: 0.5320, val loss: 0.6245 | 192s/epoch | ETA: 57min
+ No improvement (5/7)
+Epoch 13/30 — train loss: 0.5320, val loss: 0.6339 | 202s/epoch | ETA: 57min
+ No improvement (6/7)
+Epoch 14/30 — train loss: 0.5322, val loss: 0.6223 | 190s/epoch | ETA: 51min
+ No improvement (7/7)
+ Early stopping at epoch 14
+
+--- Training complete. Best val loss: 0.6159 ---
+--- Running evaluation on: gru_ctx36_tgt36_h256_l1_29_05_21-43.pt ---
+
+Loading checkpoint: /home/bbe9928/thesis_work/hirid_jepa/checkpoints/gru_ctx36_tgt36_h256_l1_29_05_21-43.pt
+
+=== Per-Variable MAE (observed timesteps only) ===
+Variables evaluated: 82 (skipped variables with <10 observations)
+Overall MAE  — model: 0.6572, persistence: 0.6295
+Mean improvement: -7.8%
+
+Top 10 best:
+  ABPm                                model=0.4141  pers=0.4577  imp=9.5%  n=11191534
+  a_PO2                               model=0.5224  pers=0.5695  imp=8.3%  n=136803
+  OUTurine/h                          model=0.6429  pers=0.6873  imp=6.5%  n=291452
+  OUT                                 model=0.2794  pers=0.2941  imp=5.0%  n=712130
+  platelet count                      model=0.6104  pers=0.6370  imp=4.2%  n=50199
+  bilirubine, total                   model=0.3900  pers=0.4016  imp=2.9%  n=20439
+  Mg_lab                              model=0.7762  pers=0.7990  imp=2.8%  n=34152
+  packed red blood cells              model=0.2708  pers=0.2785  imp=2.8%  n=23978
+  a_pCO2                              model=0.6280  pers=0.6454  imp=2.7%  n=135687
+  ABPd                                model=0.4368  pers=0.4468  imp=2.2%  n=11189952
+
+Top 10 worst:
+  HR                                  model=0.3520  pers=0.2936  imp=-19.9%  n=11608494
+  ETCO2                               model=0.4218  pers=0.3453  imp=-22.2%  n=6618028
+  PAPs                                model=0.5063  pers=0.4030  imp=-25.6%  n=2973105
+  ST1                                 model=0.3954  pers=0.2910  imp=-35.9%  n=8197078
+  SvO2(m)                             model=0.6759  pers=0.4778  imp=-41.5%  n=2952533
+  CO                                  model=0.5317  pers=0.3621  imp=-46.9%  n=2909618
+  ST2                                 model=0.4596  pers=0.2795  imp=-64.4%  n=4941520
+  ICP                                 model=0.6283  pers=0.3545  imp=-77.2%  n=247982
+  ST3                                 model=0.5165  pers=0.2774  imp=-86.2%  n=4612545
+  T Central                           model=0.5465  pers=0.2315  imp=-136.0%  n=3269778
+
+=== Summary ===
+Variables beating persistence: 36 / 82
+Best variable:  ABPm (9.5% improvement)
+Worst variable: T Central (-136.0%)
+
+Results saved to results/grid_search_29_05_1856/gru_ctx36_tgt36_h256_l1_29_05_21-43_eval.json
+Using device: cuda
+Config: context=36, target=36, hidden=256, layers=1, dropout=0.4, lr=0.0001, batch=64
+Epoch 1/30 — train loss: 0.6234, val loss: 0.6592 | 218s/epoch | ETA: 105min
+ Saved: gru_ctx36_tgt36_h256_l1_29_05_22-30.pt
+Epoch 2/30 — train loss: 0.5077, val loss: 0.6267 | 189s/epoch | ETA: 88min
+ Saved: gru_ctx36_tgt36_h256_l1_29_05_22-30.pt
+Epoch 3/30 — train loss: 0.5085, val loss: 0.6240 | 190s/epoch | ETA: 85min
+ Saved: gru_ctx36_tgt36_h256_l1_29_05_22-30.pt
+Epoch 4/30 — train loss: 0.5192, val loss: 0.6177 | 189s/epoch | ETA: 82min
+ Saved: gru_ctx36_tgt36_h256_l1_29_05_22-30.pt
+Epoch 5/30 — train loss: 0.5288, val loss: 0.6227 | 190s/epoch | ETA: 79min
+ No improvement (1/7)
+Epoch 6/30 — train loss: 0.5310, val loss: 0.6248 | 196s/epoch | ETA: 79min
+ No improvement (2/7)
+Epoch 7/30 — train loss: 0.5324, val loss: 0.6302 | 190s/epoch | ETA: 73min
+ No improvement (3/7)
+Epoch 8/30 — train loss: 0.5326, val loss: 0.6190 | 189s/epoch | ETA: 69min
+ No improvement (4/7)
+Epoch 9/30 — train loss: 0.5325, val loss: 0.6265 | 190s/epoch | ETA: 67min
+ No improvement (5/7)
+Epoch 10/30 — train loss: 0.5323, val loss: 0.6139 | 189s/epoch | ETA: 63min
+ Saved: gru_ctx36_tgt36_h256_l1_29_05_22-30.pt
+Epoch 11/30 — train loss: 0.5325, val loss: 0.6194 | 189s/epoch | ETA: 60min
+ No improvement (1/7)
+Epoch 12/30 — train loss: 0.5327, val loss: 0.6202 | 200s/epoch | ETA: 60min
+ No improvement (2/7)
+Epoch 13/30 — train loss: 0.5322, val loss: 0.6154 | 202s/epoch | ETA: 57min
+ No improvement (3/7)
+Epoch 14/30 — train loss: 0.5321, val loss: 0.6228 | 189s/epoch | ETA: 50min
+ No improvement (4/7)
+Epoch 15/30 — train loss: 0.5318, val loss: 0.6253 | 196s/epoch | ETA: 49min
+ No improvement (5/7)
+Epoch 16/30 — train loss: 0.5318, val loss: 0.6198 | 190s/epoch | ETA: 44min
+ No improvement (6/7)
+Epoch 17/30 — train loss: 0.5318, val loss: 0.6275 | 192s/epoch | ETA: 42min
+ No improvement (7/7)
+ Early stopping at epoch 17
+
+--- Training complete. Best val loss: 0.6139 ---
+--- Running evaluation on: gru_ctx36_tgt36_h256_l1_29_05_22-30.pt ---
+
+Loading checkpoint: /home/bbe9928/thesis_work/hirid_jepa/checkpoints/gru_ctx36_tgt36_h256_l1_29_05_22-30.pt
+
+=== Per-Variable MAE (observed timesteps only) ===
+Variables evaluated: 82 (skipped variables with <10 observations)
+Overall MAE  — model: 0.6572, persistence: 0.6295
+Mean improvement: -7.8%
+
+Top 10 best:
+  ABPm                                model=0.4137  pers=0.4577  imp=9.6%  n=11191534
+  OUTurine/h                          model=0.6304  pers=0.6873  imp=8.3%  n=291452
+  a_PO2                               model=0.5254  pers=0.5695  imp=7.7%  n=136803
+  packed red blood cells              model=0.2607  pers=0.2785  imp=6.4%  n=23978
+  platelet count                      model=0.6108  pers=0.6370  imp=4.1%  n=50199
+  a_pCO2                              model=0.6236  pers=0.6454  imp=3.4%  n=135687
+  ABPs                                model=0.4479  pers=0.4621  imp=3.1%  n=11194151
+  Mg_lab                              model=0.7765  pers=0.7990  imp=2.8%  n=34152
+  OUT                                 model=0.2865  pers=0.2941  imp=2.6%  n=712130
+  ABPd                                model=0.4387  pers=0.4468  imp=1.8%  n=11189952
+
+Top 10 worst:
+  HR                                  model=0.3497  pers=0.2936  imp=-19.1%  n=11608494
+  PAPs                                model=0.5153  pers=0.4030  imp=-27.9%  n=2973105
+  ETCO2                               model=0.4466  pers=0.3453  imp=-29.3%  n=6618028
+  ST1                                 model=0.3882  pers=0.2910  imp=-33.4%  n=8197078
+  SvO2(m)                             model=0.6864  pers=0.4778  imp=-43.7%  n=2952533
+  CO                                  model=0.5393  pers=0.3621  imp=-48.9%  n=2909618
+  ST2                                 model=0.4478  pers=0.2795  imp=-60.2%  n=4941520
+  ST3                                 model=0.4946  pers=0.2774  imp=-78.3%  n=4612545
+  ICP                                 model=0.6385  pers=0.3545  imp=-80.1%  n=247982
+  T Central                           model=0.5453  pers=0.2315  imp=-135.5%  n=3269778
+
+=== Summary ===
+Variables beating persistence: 34 / 82
+Best variable:  ABPm (9.6% improvement)
+Worst variable: T Central (-135.5%)
+
+Results saved to results/grid_search_29_05_1856/gru_ctx36_tgt36_h256_l1_29_05_22-30_eval.json
+Using device: cuda
+Config: context=36, target=36, hidden=128, layers=1, dropout=0.3, lr=0.0001, batch=64
+Epoch 1/30 — train loss: 0.6675, val loss: 0.6779 | 203s/epoch | ETA: 98min
+ Saved: gru_ctx36_tgt36_h128_l1_29_05_23-27.pt
+Epoch 2/30 — train loss: 0.4581, val loss: 0.5911 | 206s/epoch | ETA: 96min
+ Saved: gru_ctx36_tgt36_h128_l1_29_05_23-27.pt
+Epoch 3/30 — train loss: 0.4248, val loss: 0.5689 | 191s/epoch | ETA: 86min
+ Saved: gru_ctx36_tgt36_h128_l1_29_05_23-27.pt
+Epoch 4/30 — train loss: 0.4158, val loss: 0.5555 | 191s/epoch | ETA: 83min
+ Saved: gru_ctx36_tgt36_h128_l1_29_05_23-27.pt
+Epoch 5/30 — train loss: 0.4128, val loss: 0.5471 | 190s/epoch | ETA: 79min
+ Saved: gru_ctx36_tgt36_h128_l1_29_05_23-27.pt
+Epoch 6/30 — train loss: 0.4098, val loss: 0.5303 | 192s/epoch | ETA: 77min
+ Saved: gru_ctx36_tgt36_h128_l1_29_05_23-27.pt
+Epoch 7/30 — train loss: 0.4084, val loss: 0.5302 | 191s/epoch | ETA: 73min
+ Saved: gru_ctx36_tgt36_h128_l1_29_05_23-27.pt
+Epoch 8/30 — train loss: 0.4075, val loss: 0.5144 | 192s/epoch | ETA: 70min
+ Saved: gru_ctx36_tgt36_h128_l1_29_05_23-27.pt
+Epoch 9/30 — train loss: 0.4070, val loss: 0.5165 | 191s/epoch | ETA: 67min
+ No improvement (1/7)
+Epoch 10/30 — train loss: 0.4065, val loss: 0.5130 | 190s/epoch | ETA: 63min
+ Saved: gru_ctx36_tgt36_h128_l1_29_05_23-27.pt
+Epoch 11/30 — train loss: 0.4062, val loss: 0.5079 | 193s/epoch | ETA: 61min
+ Saved: gru_ctx36_tgt36_h128_l1_29_05_23-27.pt
+Epoch 12/30 — train loss: 0.4058, val loss: 0.5094 | 191s/epoch | ETA: 57min
+ No improvement (1/7)
+Epoch 13/30 — train loss: 0.4055, val loss: 0.5103 | 195s/epoch | ETA: 55min
+ No improvement (2/7)
+Epoch 14/30 — train loss: 0.4051, val loss: 0.5025 | 205s/epoch | ETA: 55min
+ Saved: gru_ctx36_tgt36_h128_l1_29_05_23-27.pt
+Epoch 15/30 — train loss: 0.4049, val loss: 0.5084 | 186s/epoch | ETA: 46min
+ No improvement (1/7)
+Epoch 16/30 — train loss: 0.4047, val loss: 0.5040 | 189s/epoch | ETA: 44min
+ No improvement (2/7)
+Epoch 17/30 — train loss: 0.4045, val loss: 0.4973 | 191s/epoch | ETA: 41min
+ Saved: gru_ctx36_tgt36_h128_l1_29_05_23-27.pt
+Epoch 18/30 — train loss: 0.4043, val loss: 0.5016 | 194s/epoch | ETA: 39min
+ No improvement (1/7)
+Epoch 19/30 — train loss: 0.4041, val loss: 0.5021 | 191s/epoch | ETA: 35min
+ No improvement (2/7)
+Epoch 20/30 — train loss: 0.4040, val loss: 0.5010 | 191s/epoch | ETA: 32min
+ No improvement (3/7)
+Epoch 21/30 — train loss: 0.4039, val loss: 0.5100 | 191s/epoch | ETA: 29min
+ No improvement (4/7)
+Epoch 22/30 — train loss: 0.4037, val loss: 0.5107 | 193s/epoch | ETA: 26min
+ No improvement (5/7)
+Epoch 23/30 — train loss: 0.4035, val loss: 0.4993 | 192s/epoch | ETA: 22min
+ No improvement (6/7)
+Epoch 24/30 — train loss: 0.4033, val loss: 0.5043 | 193s/epoch | ETA: 19min
+ No improvement (7/7)
+ Early stopping at epoch 24
+
+--- Training complete. Best val loss: 0.4973 ---
+--- Running evaluation on: gru_ctx36_tgt36_h128_l1_29_05_23-27.pt ---
+
+Loading checkpoint: /home/bbe9928/thesis_work/hirid_jepa/checkpoints/gru_ctx36_tgt36_h128_l1_29_05_23-27.pt
+
+=== Per-Variable MAE (observed timesteps only) ===
+Variables evaluated: 82 (skipped variables with <10 observations)
+Overall MAE  — model: 0.6181, persistence: 0.6295
+Mean improvement: 0.4%
+
+Top 10 best:
+  bilirubine, total                   model=0.3217  pers=0.4016  imp=19.9%  n=20439
+  GCS Motorik                         model=0.7303  pers=0.8803  imp=17.0%  n=264059
+  GCS Antwort                         model=0.7594  pers=0.9112  imp=16.7%  n=265922
+  GCS Augen�ffnen                     model=0.7637  pers=0.9016  imp=15.3%  n=265681
+  a_PO2                               model=0.4909  pers=0.5695  imp=13.8%  n=136803
+  a_HCO3-                             model=0.6410  pers=0.7360  imp=12.9%  n=142211
+  RASS                                model=0.7835  pers=0.8992  imp=12.9%  n=844351
+  packed red blood cells              model=0.2437  pers=0.2785  imp=12.5%  n=23978
+  a-BE                                model=0.6383  pers=0.7286  imp=12.4%  n=142001
+  ABPs                                model=0.4097  pers=0.4621  imp=11.4%  n=11194151
+
+Top 10 worst:
+  ETCO2                               model=0.3743  pers=0.3453  imp=-8.4%  n=6618028
+  INR                                 model=0.8654  pers=0.7853  imp=-10.2%  n=35530
+  Troponin-T                          model=1.0315  pers=0.8903  imp=-15.9%  n=31347
+  creatine kinase                     model=0.3057  pers=0.2607  imp=-17.3%  n=38356
+  ST1                                 model=0.3430  pers=0.2910  imp=-17.9%  n=8197078
+  creatine kinase-MB                  model=0.8010  pers=0.6717  imp=-19.2%  n=35277
+  ST2                                 model=0.3511  pers=0.2795  imp=-25.6%  n=4941520
+  T Central                           model=0.3079  pers=0.2315  imp=-33.0%  n=3269778
+  ST3                                 model=0.4189  pers=0.2774  imp=-51.0%  n=4612545
+  ICP                                 model=0.5476  pers=0.3545  imp=-54.5%  n=247982
+
+=== Summary ===
+Variables beating persistence: 51 / 82
+Best variable:  bilirubine, total (19.9% improvement)
+Worst variable: ICP (-54.5%)
+
+Results saved to results/grid_search_29_05_1856/gru_ctx36_tgt36_h128_l1_29_05_23-27_eval.json
+Using device: cuda
+Config: context=36, target=36, hidden=128, layers=1, dropout=0.4, lr=0.0001, batch=64
+Epoch 1/30 — train loss: 0.6665, val loss: 0.6806 | 235s/epoch | ETA: 113min
+ Saved: gru_ctx36_tgt36_h128_l1_30_05_00-46.pt
+Epoch 2/30 — train loss: 0.4576, val loss: 0.6006 | 196s/epoch | ETA: 92min
+ Saved: gru_ctx36_tgt36_h128_l1_30_05_00-46.pt
+Epoch 3/30 — train loss: 0.4249, val loss: 0.5775 | 207s/epoch | ETA: 93min
+ Saved: gru_ctx36_tgt36_h128_l1_30_05_00-46.pt
+Epoch 4/30 — train loss: 0.4156, val loss: 0.5645 | 245s/epoch | ETA: 106min
+ Saved: gru_ctx36_tgt36_h128_l1_30_05_00-46.pt
+Epoch 5/30 — train loss: 0.4120, val loss: 0.5445 | 247s/epoch | ETA: 103min
+ Saved: gru_ctx36_tgt36_h128_l1_30_05_00-46.pt
+Epoch 6/30 — train loss: 0.4092, val loss: 0.5452 | 191s/epoch | ETA: 76min
+ No improvement (1/7)
+Epoch 7/30 — train loss: 0.4078, val loss: 0.5338 | 225s/epoch | ETA: 86min
+ Saved: gru_ctx36_tgt36_h128_l1_30_05_00-46.pt
+Epoch 8/30 — train loss: 0.4070, val loss: 0.5295 | 203s/epoch | ETA: 74min
+ Saved: gru_ctx36_tgt36_h128_l1_30_05_00-46.pt
+Epoch 9/30 — train loss: 0.4065, val loss: 0.5254 | 191s/epoch | ETA: 67min
+ Saved: gru_ctx36_tgt36_h128_l1_30_05_00-46.pt
+Epoch 10/30 — train loss: 0.4061, val loss: 0.5201 | 193s/epoch | ETA: 64min
+ Saved: gru_ctx36_tgt36_h128_l1_30_05_00-46.pt
+Epoch 11/30 — train loss: 0.4057, val loss: 0.5151 | 205s/epoch | ETA: 65min
+ Saved: gru_ctx36_tgt36_h128_l1_30_05_00-46.pt
+Epoch 12/30 — train loss: 0.4056, val loss: 0.5103 | 194s/epoch | ETA: 58min
+ Saved: gru_ctx36_tgt36_h128_l1_30_05_00-46.pt
+Epoch 13/30 — train loss: 0.4053, val loss: 0.5128 | 192s/epoch | ETA: 54min
+ No improvement (1/7)
+Epoch 14/30 — train loss: 0.4052, val loss: 0.5150 | 199s/epoch | ETA: 53min
+ No improvement (2/7)
+Epoch 15/30 — train loss: 0.4049, val loss: 0.5048 | 192s/epoch | ETA: 48min
+ Saved: gru_ctx36_tgt36_h128_l1_30_05_00-46.pt
+Epoch 16/30 — train loss: 0.4048, val loss: 0.5036 | 190s/epoch | ETA: 44min
+ Saved: gru_ctx36_tgt36_h128_l1_30_05_00-46.pt
+Epoch 17/30 — train loss: 0.4044, val loss: 0.5041 | 190s/epoch | ETA: 41min
+ No improvement (1/7)
+Epoch 18/30 — train loss: 0.4043, val loss: 0.5048 | 192s/epoch | ETA: 38min
+ No improvement (2/7)
+Epoch 19/30 — train loss: 0.4041, val loss: 0.5090 | 189s/epoch | ETA: 35min
+ No improvement (3/7)
+Epoch 20/30 — train loss: 0.4039, val loss: 0.5114 | 192s/epoch | ETA: 32min
+ No improvement (4/7)
+Epoch 21/30 — train loss: 0.4038, val loss: 0.5074 | 192s/epoch | ETA: 29min
+ No improvement (5/7)
+Epoch 22/30 — train loss: 0.4036, val loss: 0.5056 | 193s/epoch | ETA: 26min
+ No improvement (6/7)
+Epoch 23/30 — train loss: 0.4035, val loss: 0.5050 | 193s/epoch | ETA: 23min
+ No improvement (7/7)
+ Early stopping at epoch 23
+
+--- Training complete. Best val loss: 0.5036 ---
+--- Running evaluation on: gru_ctx36_tgt36_h128_l1_30_05_00-46.pt ---
+
+Loading checkpoint: /home/bbe9928/thesis_work/hirid_jepa/checkpoints/gru_ctx36_tgt36_h128_l1_30_05_00-46.pt
+
+=== Per-Variable MAE (observed timesteps only) ===
+Variables evaluated: 82 (skipped variables with <10 observations)
+Overall MAE  — model: 0.6191, persistence: 0.6295
+Mean improvement: 0.2%
+
+Top 10 best:
+  GCS Motorik                         model=0.7245  pers=0.8803  imp=17.7%  n=264059
+  GCS Antwort                         model=0.7683  pers=0.9112  imp=15.7%  n=265922
+  GCS Augen�ffnen                     model=0.7662  pers=0.9016  imp=15.0%  n=265681
+  a_PO2                               model=0.4885  pers=0.5695  imp=14.2%  n=136803
+  bilirubine, total                   model=0.3479  pers=0.4016  imp=13.4%  n=20439
+  packed red blood cells              model=0.2429  pers=0.2785  imp=12.8%  n=23978
+  a_HCO3-                             model=0.6461  pers=0.7360  imp=12.2%  n=142211
+  a-BE                                model=0.6435  pers=0.7286  imp=11.7%  n=142001
+  ABPm                                model=0.4045  pers=0.4577  imp=11.6%  n=11191534
+  RASS                                model=0.7956  pers=0.8992  imp=11.5%  n=844351
+
+Top 10 worst:
+  ALAT                                model=0.5832  pers=0.5167  imp=-12.9%  n=30224
+  ASAT                                model=0.5036  pers=0.4408  imp=-14.3%  n=26435
+  Troponin-T                          model=1.0690  pers=0.8903  imp=-20.1%  n=31347
+  ST1                                 model=0.3536  pers=0.2910  imp=-21.5%  n=8197078
+  creatine kinase-MB                  model=0.8403  pers=0.6717  imp=-25.1%  n=35277
+  creatine kinase                     model=0.3339  pers=0.2607  imp=-28.1%  n=38356
+  ST3                                 model=0.3582  pers=0.2774  imp=-29.1%  n=4612545
+  ST2                                 model=0.3625  pers=0.2795  imp=-29.7%  n=4941520
+  T Central                           model=0.3059  pers=0.2315  imp=-32.2%  n=3269778
+  ICP                                 model=0.5289  pers=0.3545  imp=-49.2%  n=247982
+
+=== Summary ===
+Variables beating persistence: 51 / 82
+Best variable:  GCS Motorik (17.7% improvement)
+Worst variable: ICP (-49.2%)
+
+Results saved to results/grid_search_29_05_1856/gru_ctx36_tgt36_h128_l1_30_05_00-46_eval.json
+Using device: cuda
+Config: context=36, target=36, hidden=256, layers=1, dropout=0.3, lr=0.0001, batch=64
+Epoch 1/30 — train loss: 0.5625, val loss: 0.6143 | 209s/epoch | ETA: 101min
+ Saved: gru_ctx36_tgt36_h256_l1_30_05_02-06.pt
+Epoch 2/30 — train loss: 0.4208, val loss: 0.5855 | 191s/epoch | ETA: 89min
+ Saved: gru_ctx36_tgt36_h256_l1_30_05_02-06.pt
+Epoch 3/30 — train loss: 0.4069, val loss: 0.5666 | 190s/epoch | ETA: 86min
+ Saved: gru_ctx36_tgt36_h256_l1_30_05_02-06.pt
+Epoch 4/30 — train loss: 0.4030, val loss: 0.5536 | 191s/epoch | ETA: 83min
+ Saved: gru_ctx36_tgt36_h256_l1_30_05_02-06.pt
+Epoch 5/30 — train loss: 0.4019, val loss: 0.5422 | 197s/epoch | ETA: 82min
+ Saved: gru_ctx36_tgt36_h256_l1_30_05_02-06.pt
+Epoch 6/30 — train loss: 0.3995, val loss: 0.5350 | 207s/epoch | ETA: 83min
+ Saved: gru_ctx36_tgt36_h256_l1_30_05_02-06.pt
+Epoch 7/30 — train loss: 0.3981, val loss: 0.5409 | 190s/epoch | ETA: 73min
+ No improvement (1/7)
+Epoch 8/30 — train loss: 0.3971, val loss: 0.5337 | 190s/epoch | ETA: 70min
+ Saved: gru_ctx36_tgt36_h256_l1_30_05_02-06.pt
+Epoch 9/30 — train loss: 0.3964, val loss: 0.5339 | 197s/epoch | ETA: 69min
+ No improvement (1/7)
+Epoch 10/30 — train loss: 0.3957, val loss: 0.5291 | 216s/epoch | ETA: 72min
+ Saved: gru_ctx36_tgt36_h256_l1_30_05_02-06.pt
+Epoch 11/30 — train loss: 0.3949, val loss: 0.5354 | 190s/epoch | ETA: 60min
+ No improvement (1/7)
+Epoch 12/30 — train loss: 0.3944, val loss: 0.5249 | 188s/epoch | ETA: 56min
+ Saved: gru_ctx36_tgt36_h256_l1_30_05_02-06.pt
+Epoch 13/30 — train loss: 0.3939, val loss: 0.5286 | 205s/epoch | ETA: 58min
+ No improvement (1/7)
+Epoch 14/30 — train loss: 0.3936, val loss: 0.5342 | 190s/epoch | ETA: 51min
+ No improvement (2/7)
+Epoch 15/30 — train loss: 0.3933, val loss: 0.5263 | 198s/epoch | ETA: 49min
+ No improvement (3/7)
+Epoch 16/30 — train loss: 0.3930, val loss: 0.5322 | 191s/epoch | ETA: 45min
+ No improvement (4/7)
+Epoch 17/30 — train loss: 0.3927, val loss: 0.5434 | 190s/epoch | ETA: 41min
+ No improvement (5/7)
+Epoch 18/30 — train loss: 0.3925, val loss: 0.5333 | 188s/epoch | ETA: 38min
+ No improvement (6/7)
+Epoch 19/30 — train loss: 0.3923, val loss: 0.5314 | 188s/epoch | ETA: 34min
+ No improvement (7/7)
+ Early stopping at epoch 19
+
+--- Training complete. Best val loss: 0.5249 ---
+--- Running evaluation on: gru_ctx36_tgt36_h256_l1_30_05_02-06.pt ---
+
+Loading checkpoint: /home/bbe9928/thesis_work/hirid_jepa/checkpoints/gru_ctx36_tgt36_h256_l1_30_05_02-06.pt
+
+=== Per-Variable MAE (observed timesteps only) ===
+Variables evaluated: 82 (skipped variables with <10 observations)
+Overall MAE  — model: 0.6211, persistence: 0.6295
+Mean improvement: -0.5%
+
+Top 10 best:
+  GCS Antwort                         model=0.7564  pers=0.9112  imp=17.0%  n=265922
+  a_PO2                               model=0.4830  pers=0.5695  imp=15.2%  n=136803
+  a_HCO3-                             model=0.6301  pers=0.7360  imp=14.4%  n=142211
+  GCS Augen�ffnen                     model=0.7750  pers=0.9016  imp=14.0%  n=265681
+  a-BE                                model=0.6277  pers=0.7286  imp=13.8%  n=142001
+  RASS                                model=0.7760  pers=0.8992  imp=13.7%  n=844351
+  bilirubine, total                   model=0.3475  pers=0.4016  imp=13.5%  n=20439
+  packed red blood cells              model=0.2428  pers=0.2785  imp=12.8%  n=23978
+  GCS Motorik                         model=0.7756  pers=0.8803  imp=11.9%  n=264059
+  OUTurine/h                          model=0.6057  pers=0.6873  imp=11.9%  n=291452
+
+Top 10 worst:
+  INR                                 model=0.8803  pers=0.7853  imp=-12.1%  n=35530
+  ASAT                                model=0.5002  pers=0.4408  imp=-13.5%  n=26435
+  Troponin-T                          model=1.0347  pers=0.8903  imp=-16.2%  n=31347
+  creatine kinase                     model=0.3268  pers=0.2607  imp=-25.3%  n=38356
+  creatine kinase-MB                  model=0.8462  pers=0.6717  imp=-26.0%  n=35277
+  ST1                                 model=0.3703  pers=0.2910  imp=-27.2%  n=8197078
+  T Central                           model=0.3117  pers=0.2315  imp=-34.7%  n=3269778
+  ST2                                 model=0.3838  pers=0.2795  imp=-37.3%  n=4941520
+  ICP                                 model=0.5184  pers=0.3545  imp=-46.2%  n=247982
+  ST3                                 model=0.4216  pers=0.2774  imp=-52.0%  n=4612545
+
+=== Summary ===
+Variables beating persistence: 52 / 82
+Best variable:  GCS Antwort (17.0% improvement)
+Worst variable: ST3 (-52.0%)
+
+Results saved to results/grid_search_29_05_1856/gru_ctx36_tgt36_h256_l1_30_05_02-06_eval.json
+Using device: cuda
+Config: context=36, target=36, hidden=256, layers=1, dropout=0.4, lr=0.0001, batch=64
+Epoch 1/30 — train loss: 0.5599, val loss: 0.6191 | 208s/epoch | ETA: 100min
+ Saved: gru_ctx36_tgt36_h256_l1_30_05_03-09.pt
+Epoch 2/30 — train loss: 0.4212, val loss: 0.5846 | 191s/epoch | ETA: 89min
+ Saved: gru_ctx36_tgt36_h256_l1_30_05_03-09.pt
+Epoch 3/30 — train loss: 0.4076, val loss: 0.5725 | 199s/epoch | ETA: 89min
+ Saved: gru_ctx36_tgt36_h256_l1_30_05_03-09.pt
+Epoch 4/30 — train loss: 0.4033, val loss: 0.5618 | 197s/epoch | ETA: 85min
+ Saved: gru_ctx36_tgt36_h256_l1_30_05_03-09.pt
+Epoch 5/30 — train loss: 0.4020, val loss: 0.5531 | 209s/epoch | ETA: 87min
+ Saved: gru_ctx36_tgt36_h256_l1_30_05_03-09.pt
+Epoch 6/30 — train loss: 0.3995, val loss: 0.5481 | 191s/epoch | ETA: 76min
+ Saved: gru_ctx36_tgt36_h256_l1_30_05_03-09.pt
+Epoch 7/30 — train loss: 0.3977, val loss: 0.5330 | 191s/epoch | ETA: 73min
+ Saved: gru_ctx36_tgt36_h256_l1_30_05_03-09.pt
+Epoch 8/30 — train loss: 0.3967, val loss: 0.5354 | 188s/epoch | ETA: 69min
+ No improvement (1/7)
+Epoch 9/30 — train loss: 0.3958, val loss: 0.5349 | 200s/epoch | ETA: 70min
+ No improvement (2/7)
+Epoch 10/30 — train loss: 0.3951, val loss: 0.5300 | 189s/epoch | ETA: 63min
+ Saved: gru_ctx36_tgt36_h256_l1_30_05_03-09.pt
+Epoch 11/30 — train loss: 0.3946, val loss: 0.5293 | 188s/epoch | ETA: 59min
+ Saved: gru_ctx36_tgt36_h256_l1_30_05_03-09.pt
+Epoch 12/30 — train loss: 0.3941, val loss: 0.5293 | 188s/epoch | ETA: 56min
+ Saved: gru_ctx36_tgt36_h256_l1_30_05_03-09.pt
+Epoch 13/30 — train loss: 0.3938, val loss: 0.5305 | 188s/epoch | ETA: 53min
+ No improvement (1/7)
+Epoch 14/30 — train loss: 0.3934, val loss: 0.5305 | 188s/epoch | ETA: 50min
+ No improvement (2/7)
+Epoch 15/30 — train loss: 0.3932, val loss: 0.5336 | 188s/epoch | ETA: 47min
+ No improvement (3/7)
+Epoch 16/30 — train loss: 0.3928, val loss: 0.5343 | 198s/epoch | ETA: 46min
+ No improvement (4/7)
+Epoch 17/30 — train loss: 0.3926, val loss: 0.5293 | 201s/epoch | ETA: 44min
+ Saved: gru_ctx36_tgt36_h256_l1_30_05_03-09.pt
+Epoch 18/30 — train loss: 0.3924, val loss: 0.5326 | 191s/epoch | ETA: 38min
+ No improvement (1/7)
+Epoch 19/30 — train loss: 0.3922, val loss: 0.5277 | 189s/epoch | ETA: 35min
+ Saved: gru_ctx36_tgt36_h256_l1_30_05_03-09.pt
+Epoch 20/30 — train loss: 0.3920, val loss: 0.5324 | 189s/epoch | ETA: 32min
+ No improvement (1/7)
+Epoch 21/30 — train loss: 0.3919, val loss: 0.5430 | 202s/epoch | ETA: 30min
+ No improvement (2/7)
+Epoch 22/30 — train loss: 0.3916, val loss: 0.5296 | 189s/epoch | ETA: 25min
+ No improvement (3/7)
+Epoch 23/30 — train loss: 0.3914, val loss: 0.5393 | 190s/epoch | ETA: 22min
+ No improvement (4/7)
+Epoch 24/30 — train loss: 0.3913, val loss: 0.5335 | 187s/epoch | ETA: 19min
+ No improvement (5/7)
+Epoch 25/30 — train loss: 0.3911, val loss: 0.5334 | 202s/epoch | ETA: 17min
+ No improvement (6/7)
+Epoch 26/30 — train loss: 0.3911, val loss: 0.5335 | 191s/epoch | ETA: 13min
+ No improvement (7/7)
+ Early stopping at epoch 26
+
+--- Training complete. Best val loss: 0.5277 ---
+--- Running evaluation on: gru_ctx36_tgt36_h256_l1_30_05_03-09.pt ---
+
+Loading checkpoint: /home/bbe9928/thesis_work/hirid_jepa/checkpoints/gru_ctx36_tgt36_h256_l1_30_05_03-09.pt
+
+=== Per-Variable MAE (observed timesteps only) ===
+Variables evaluated: 82 (skipped variables with <10 observations)
+Overall MAE  — model: 0.6187, persistence: 0.6295
+Mean improvement: -0.3%
+
+Top 10 best:
+  GCS Motorik                         model=0.6930  pers=0.8803  imp=21.3%  n=264059
+  GCS Augen�ffnen                     model=0.7333  pers=0.9016  imp=18.7%  n=265681
+  GCS Antwort                         model=0.7422  pers=0.9112  imp=18.6%  n=265922
+  a_PO2                               model=0.4825  pers=0.5695  imp=15.3%  n=136803
+  a_HCO3-                             model=0.6283  pers=0.7360  imp=14.6%  n=142211
+  a-BE                                model=0.6237  pers=0.7286  imp=14.4%  n=142001
+  bilirubine, total                   model=0.3499  pers=0.4016  imp=12.9%  n=20439
+  packed red blood cells              model=0.2431  pers=0.2785  imp=12.7%  n=23978
+  RASS                                model=0.7881  pers=0.8992  imp=12.4%  n=844351
+  NIBPm                               model=0.5841  pers=0.6652  imp=12.2%  n=89716
+
+Top 10 worst:
+  SvO2(m)                             model=0.5217  pers=0.4778  imp=-9.2%  n=2952533
+  ETCO2                               model=0.3844  pers=0.3453  imp=-11.3%  n=6618028
+  Troponin-T                          model=1.0494  pers=0.8903  imp=-17.9%  n=31347
+  creatine kinase-MB                  model=0.8047  pers=0.6717  imp=-19.8%  n=35277
+  creatine kinase                     model=0.3330  pers=0.2607  imp=-27.7%  n=38356
+  ST1                                 model=0.3723  pers=0.2910  imp=-27.9%  n=8197078
+  ST2                                 model=0.3621  pers=0.2795  imp=-29.5%  n=4941520
+  T Central                           model=0.3212  pers=0.2315  imp=-38.7%  n=3269778
+  ST3                                 model=0.4159  pers=0.2774  imp=-49.9%  n=4612545
+  ICP                                 model=0.5903  pers=0.3545  imp=-66.5%  n=247982
+
+=== Summary ===
+Variables beating persistence: 51 / 82
+Best variable:  GCS Motorik (21.3% improvement)
+Worst variable: ICP (-66.5%)
+
+Results saved to results/grid_search_29_05_1856/gru_ctx36_tgt36_h256_l1_30_05_03-09_eval.json

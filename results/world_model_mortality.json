@@ -1,0 +1,8 @@
+{
+  "checkpoint": "gru_ctx36_tgt36_h256_l1_04_06_16-31.pt",
+  "context_val_auroc": 0.8526094276094276,
+  "context_test_auroc": 0.9038697446191591,
+  "predicted_val_auroc": 0.8277777777777778,
+  "predicted_test_auroc": 0.8979591836734693,
+  "gap": 0.005910560945689869
+}

@@ -1,0 +1,10 @@
+{
+  "checkpoint": "/home/bbe9928/thesis_work/hirid_jepa/checkpoints/gru_ctx36_tgt36_h128_l1_01_06_12-09.pt",
+  "val_auroc": 0.7512626262626262,
+  "test_auroc": 0.8893721422995429,
+  "n_train": 1703,
+  "n_val": 309,
+  "n_test": 355,
+  "mortality_rate_train": 0.17909571528434753,
+  "mortality_rate_test": 0.17183098196983337
+}

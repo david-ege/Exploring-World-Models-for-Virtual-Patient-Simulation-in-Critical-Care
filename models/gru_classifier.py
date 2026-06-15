@@ -1,23 +1,20 @@
-# models/gru_predictor.py
+# models/gru_classifier.py
 import torch
 import torch.nn as nn
 from data.constants import N_DEMOGRAPHICS
 
-class GRUPredictor(nn.Module):
-    def __init__(self, hidden_dim=256, num_layers=2, dropout=0.1,
-                 target_steps=12, encoder_dim=64,
-                 n_measurements=None, n_treatments=None,
-                 use_context_mask=False, use_delta_t=False):
+# models/gru_classifier.py
+class GRUClassifier(nn.Module):
+    def __init__(self, hidden_dim=64, num_layers=1, dropout=0.3,
+                 n_measurements=None, use_context_mask=False, use_delta_t=False):
         super().__init__()
         self.hidden_dim       = hidden_dim
         self.num_layers       = num_layers
-        self.target_steps     = target_steps
-        self.n_measurements   = n_measurements
         self.use_context_mask = use_context_mask
         self.use_delta_t      = use_delta_t
 
-        # Input size depends on which extras are included
-        gru_input_dim = n_measurements + n_treatments + 1
+        # Input: measurements + datetime (no treatments)
+        gru_input_dim = n_measurements + 1  # +1 for datetime
         if use_context_mask:
             gru_input_dim += n_measurements
         if use_delta_t:
@@ -30,26 +27,30 @@ class GRUPredictor(nn.Module):
             batch_first=True,
             dropout=dropout if num_layers > 1 else 0.0
         )
+
+        # Demographics injected into initial hidden state
         self.demo_proj = nn.Sequential(
             nn.Linear(N_DEMOGRAPHICS, hidden_dim),
             nn.Tanh()
         )
-        self.output_proj = nn.Sequential(
-            nn.Linear(hidden_dim, hidden_dim),
+
+        self.classifier = nn.Sequential(
+            nn.Linear(hidden_dim, 64),
             nn.ReLU(),
-            nn.Linear(hidden_dim, n_measurements * target_steps)
+            nn.Dropout(dropout),
+            nn.Linear(64, 1),
+            nn.Sigmoid()
         )
 
-    def forward(self, measurements, treatments, datetime, demographics,
+    def forward(self, measurements, datetime, demographics,
                 context_mask=None, delta_t=None):
-        B = measurements.shape[0]
-        parts = [measurements, treatments, datetime]
+        parts = [measurements, datetime]
         if self.use_context_mask and context_mask is not None:
             parts.append(context_mask)
         if self.use_delta_t and delta_t is not None:
             parts.append(delta_t)
-        x   = torch.cat(parts, dim=-1)
-        h0  = self.demo_proj(demographics).unsqueeze(0).repeat(self.num_layers, 1, 1)
+
+        x  = torch.cat(parts, dim=-1)
+        h0 = self.demo_proj(demographics).unsqueeze(0).repeat(self.num_layers, 1, 1)
         _, h_n = self.gru(x, h0)
-        out = self.output_proj(h_n[-1])
-        return out.view(B, self.target_steps, self.n_measurements)
+        return self.classifier(h_n[-1]).squeeze(-1)

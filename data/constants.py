@@ -5,7 +5,7 @@ DEMOGRAPHIC_IDX = [46, 198, 199, 200, 201]  # Weight, admissiontime, age, sex, h
 MEASUREMENT_IDX = [
     1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
     16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27, 28, 29, 30,
-    32, 45, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58,
+    32,39, 40, 41, 45, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58,
     59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72,
     73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86,
     87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100,
@@ -14,7 +14,7 @@ MEASUREMENT_IDX = [
 ]
 
 TREATMENT_IDX = [
-    23, 31, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44,
+    23, 31, 33, 34, 35, 36, 37, 38,  42, 43, 44,
     115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125,
     126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136,
     137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147,
@@ -34,3 +34,23 @@ TOP_14_STATISTICAL_RELEVANCE_TREATMENT_IDX   = [4, 8, 25, 27, 34, 35, 39, 52, 53
 
 TOP_10_LLM_MEASUREMENT_IDX = [36, 1, 78, 50, 114, 98, 94, 105, 113, 108]
 TOP_10_LLM_TREATMENT_IDX   = [61, 97, 27, 49, 4, 75, 92, 30, 99, 36]
+
+#Treatment optimization subset
+CEM_TREATMENT_LOCAL_IDX = [
+    1,   # IN
+    14,  # norepinephrine
+    15,  # epinephrine
+    16,  # dobutamine
+    34,  # Loop diuretics
+    44,  # Propofol
+    47,  # Insulin Kurzwirksam
+    58,  # Heparin
+]
+
+CONTINUOUS_CEM = [1, 14, 15, 16, 44, 58]  # IN, norepi, epi, dobutamine, propofol, heparin
+BINARY_CEM     = [34, 47]               #Einmalige Medikamentengabe loop diuretics, insulin
+
+CEM_TREATMENT_NAMES = [
+    'IN', 'norepinephrine', 'epinephrine', 'dobutamine',
+    'Loop diuretics', 'Propofol', 'Insulin Kurzwirksam', 'Heparin'
+]

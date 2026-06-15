@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
-import config
+import config as config
 from data.dataset import HiRIDDataset
 from data.constants import N_MEASUREMENTS, N_TREATMENTS
 from models.gru_predictor import GRUPredictor
@@ -26,6 +26,8 @@ def parse_args():
     parser.add_argument('--lr',       type=float, default=None)
     parser.add_argument('--batch',    type=int,   default=None)
     parser.add_argument('--epochs',   type=int,   default=None)
+    parser.add_argument('--wd',          type=float, default=None)
+    parser.add_argument('--results_dir', type=str,   default=None)
     return parser.parse_args()
 
 def masked_mse(pred, target, mask):
@@ -44,12 +46,13 @@ def train(override_cfg={}):
 
     context_steps = override_cfg.get('context_steps', args.context  or config.CONTEXT_STEPS)
     target_steps  = override_cfg.get('target_steps',  args.target   or config.TARGET_STEPS)
-    hidden_dim    = override_cfg.get('hidden_dim',    args.hidden   or config.HIDDEN_DIM)
-    num_layers    = override_cfg.get('num_layers',    args.layers   or config.NUM_LAYERS)
-    dropout       = override_cfg.get('dropout',       args.dropout  or config.DROPOUT)
-    learning_rate = override_cfg.get('learning_rate', args.lr       or config.LEARNING_RATE)
-    batch_size    = override_cfg.get('batch_size',    args.batch    or config.BATCH_SIZE)
-    num_epochs    = override_cfg.get('num_epochs',    args.epochs   or config.NUM_EPOCHS)
+    hidden_dim    = override_cfg.get('hidden_dim',    args.hidden   or config.PRED_HIDDEN_DIM)
+    num_layers    = override_cfg.get('num_layers',    args.layers   or config.PRED_NUM_LAYERS)
+    dropout       = override_cfg.get('dropout',       args.dropout  or config.PRED_DROPOUT)
+    learning_rate = override_cfg.get('learning_rate', args.lr       or config.PRED_LEARNING_RATE)
+    batch_size    = override_cfg.get('batch_size',    args.batch    or config.PRED_BATCH_SIZE)
+    num_epochs    = override_cfg.get('num_epochs',    args.epochs   or config.PRED_NUM_EPOCHS)
+    weight_decay  = override_cfg.get('weight_decay', args.wd or config.PRED_WEIGHT_DECAY)
 
     os.makedirs(config.CHECKPOINT_DIR, exist_ok=True)
     device = torch.device(config.DEVICE if torch.cuda.is_available() else 'cpu')
@@ -80,13 +83,15 @@ def train(override_cfg={}):
         num_layers=num_layers,
         dropout=dropout,
         target_steps=target_steps,
-        encoder_dim=config.ENCODER_DIM,
+        encoder_dim=config.PRED_ENCODER_DIM,
         n_measurements=n_measurements,
-        n_treatments=n_treatments
+        n_treatments=n_treatments,
+        use_context_mask=config.PRED_USE_CONTEXT_MASK,
+        use_delta_t=config.PRED_USE_DELTA_T
     ).to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
-                                 weight_decay=config.WEIGHT_DECAY)
+                                 weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=get_lr)
 
     best_val_loss             = float('inf')
@@ -106,10 +111,10 @@ def train(override_cfg={}):
             target_mask  = batch['target_mask'].to(device)
 
             optimizer.zero_grad()
-            pred = model(measurements, treatments, datetime, demographics, batch['context_mask'].to(device),batch['delta_t'].to(device))
+            pred = model(measurements, treatments, datetime, demographics,batch['context_mask'].to(device) if config.PRED_USE_CONTEXT_MASK else None,batch['delta_t'].to(device) if config.PRED_USE_DELTA_T else None)
             loss = masked_mse(pred, target, target_mask)
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), config.GRAD_CLIP)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), config.PRED_GRAD_CLIP)
             optimizer.step()
             train_loss += loss.item()
 
@@ -127,7 +132,7 @@ def train(override_cfg={}):
                 target       = batch['target'].to(device)
                 target_mask  = batch['target_mask'].to(device)
 
-                pred = model(measurements, treatments, datetime, demographics, batch['context_mask'].to(device),batch['delta_t'].to(device))
+                pred = model(measurements, treatments, datetime, demographics,batch['context_mask'].to(device) if config.PRED_USE_CONTEXT_MASK else None,batch['delta_t'].to(device) if config.PRED_USE_DELTA_T else None)
                 val_loss += masked_mse(pred, target, target_mask).item()
 
         val_loss /= len(val_loader)
@@ -147,27 +152,32 @@ def train(override_cfg={}):
                     'num_layers':         num_layers,
                     'dropout':            dropout,
                     'target_steps':       target_steps,
-                    'encoder_dim':        config.ENCODER_DIM,
+                    'encoder_dim':        config.PRED_ENCODER_DIM,
                     'n_measurements':     n_measurements,
                     'n_treatments':       n_treatments,
                     'measurement_subset': config.MEASUREMENT_SUBSET,
                     'treatment_subset':   config.TREATMENT_SUBSET,
                     'uses_context_mask': True,
                     'uses_delta_t':      True,
+                    'weight_decay': weight_decay,
+                    'uses_context_mask': config.PRED_USE_CONTEXT_MASK,
+                    'uses_delta_t':      config.PRED_USE_DELTA_T,
+                    'data_set':          config.DATA_PATH,
                 }
             }, f"{config.CHECKPOINT_DIR}/{checkpoint_name}")
             print(f" Saved: {checkpoint_name}")
         else:
             epochs_without_improvement += 1
-            print(f" No improvement ({epochs_without_improvement}/{config.PATIENCE})")
-            if epochs_without_improvement >= config.PATIENCE:
+            print(f" No improvement ({epochs_without_improvement}/{config.PRED_PATIENCE})")
+            if epochs_without_improvement >= config.PRED_PATIENCE:
                 print(f" Early stopping at epoch {epoch+1}")
                 break
 
     print(f"\n--- Training complete. Best val loss: {best_val_loss:.4f} ---")
     print(f"--- Running evaluation on: {checkpoint_name} ---\n")
-    evaluate(checkpoint_name)
-    return best_val_loss
+    results = evaluate(checkpoint_name, results_dir=args.results_dir or config.RESULTS_DIR)
+
+    return best_val_loss, results
 
 if __name__ == '__main__':
     train()

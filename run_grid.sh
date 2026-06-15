@@ -1,32 +1,27 @@
 #GRID SEARCH TERMINAL COMMAND
 #!/bin/bash
-# run_grid.sh
-
 cd ~/thesis_work/hirid_jepa
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate exploration
 
-RESULTS_FILE="grid_results_$(date +%d_%m_%H%M).txt"
-echo "Grid Search Results" > $RESULTS_FILE
-echo "==================" >> $RESULTS_FILE
+GRID_DIR="results/grid_search_$(date +%d_%m_%H%M)"
+mkdir -p $GRID_DIR
+echo "Saving results to $GRID_DIR"
 
-for target in 12 48 72; do
-    for context in 36 72; do
-        for hidden in 128 256; do
-            for layers in 1 2; do
-                echo "" >> $RESULTS_FILE
-                echo "target=$target context=$context hidden=$hidden layers=$layers" >> $RESULTS_FILE
-                echo "=== target=$target context=$context hidden=$hidden layers=$layers ==="
-                python train.py \
-                    --target $target \
-                    --context $context \
-                    --hidden $hidden \
-                    --layers $layers \
-                    2>&1 | tee -a $RESULTS_FILE
-            done
+for wd in 1e-3 1e-4; do
+    for hidden in 128 256; do
+        for dropout in 0.3 0.4; do
+            echo ""
+            echo "=== wd=$wd hidden=$hidden dropout=$dropout ==="
+            python train.py \
+                --hidden $hidden \
+                --dropout $dropout \
+                --wd $wd \
+                --results_dir $GRID_DIR \
+                2>&1 | tee -a $GRID_DIR/training_log.txt
         done
     done
 done
 
 echo ""
-echo "Grid search complete. Results saved to $RESULTS_FILE"
+echo "Grid search complete. Results in $GRID_DIR"
