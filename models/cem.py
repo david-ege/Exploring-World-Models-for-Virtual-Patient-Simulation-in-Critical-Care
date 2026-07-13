@@ -141,23 +141,37 @@ def load_classifier(device):
         model.load_state_dict(checkpoint)
         model.eval()
         return model
-
-def create_treatments_vector(theta, device, original_treatments):
-    treatments = original_treatments.clone()
-    treatments_flat = np.zeros(len(theta))
+    
+def create_treatments_vector(theta, device, original_treatments, original_treatment_mask):
+    treatments      = original_treatments.clone()
+    treatment_mask  = original_treatment_mask.clone()
+    n_cem           = len(CEM_TREATMENT_LOCAL_IDX)
+    no_treat_option = config.CEM_NO_TREAT_OPTION_ENABLED
+    treatments_flat = np.zeros(n_cem)
 
     for cem_i, local_idx in enumerate(CEM_TREATMENT_LOCAL_IDX):
-        p1 = PERCENTILES[CEM_TREATMENT_NAMES[cem_i]]['p1']
+        p1  = PERCENTILES[CEM_TREATMENT_NAMES[cem_i]]['p1']
         p99 = PERCENTILES[CEM_TREATMENT_NAMES[cem_i]]['p99']
-        val       = float(np.clip(theta[cem_i], p1, p99))
+
+        if no_treat_option:
+            gate     = theta[cem_i]
+            dose_raw = theta[n_cem + cem_i]
+            val      = float(np.clip(dose_raw, p1, p99)) if gate > 0 else 0.0
+        else:
+            val      = float(np.clip(theta[cem_i], p1, p99))
+
         treatments_flat[cem_i] = val
 
         if local_idx in CONTINUOUS_CEM:
-            treatments[0, :, local_idx] = val
+            treatments[0, :, local_idx]     = val
+            treatment_mask[0, :, local_idx] = 1.0 if val != 0.0 else 0.0
         elif local_idx in BINARY_CEM:
-            treatments[0, 0,  local_idx] = val
-            treatments[0, 1:, local_idx] = 0.0
-    return treatments.to(device), treatments_flat
+            treatments[0, 0,  local_idx]    = val
+            treatments[0, 1:, local_idx]    = 0.0
+            treatment_mask[0, 0, local_idx] = 1.0 if val != 0.0 else 0.0
+            treatment_mask[0, 1:, local_idx] = 0.0
+
+    return treatments.to(device), treatment_mask.to(device), treatments_flat
 
 def treatment_diff(cem_treatments, original_treatments, original_treatment_mask):
     per_variable_diff = []
@@ -194,8 +208,9 @@ def evaluate_policy(theta, classifier, predictor, predictor_config, data, device
     demographics = data['demographics'].to(device)
     context_mask = data['context_mask'].to(device)
     delta_t      = data['delta_t'].to(device)
+    treatment_mask_original = data['treatments_mask'].to(device)
 
-    treatments, treatments_flat = create_treatments_vector(theta, device, treatments)
+    treatments, treatments_mask, treatments_flat = create_treatments_vector(theta, device, treatments, treatment_mask_original)
 
     with torch.no_grad():
         new_state = predictor(
@@ -221,12 +236,12 @@ def evaluate_policy(theta, classifier, predictor, predictor_config, data, device
     real_meas_np  = measurements.squeeze(0).cpu().numpy()
     real_mask_np  = context_mask.squeeze(0).cpu().numpy()
     treat_np      = treatments.squeeze(0).cpu().numpy()
-    treat_mask_np = np.ones_like(treat_np)
+    treat_mask_np = treatments_mask.squeeze(0).cpu().numpy()
     pred_np       = new_state.squeeze(0).cpu().numpy()
     pred_mask_np  = np.ones_like(pred_np)
 
     sofa_before    = compute_sofa(real_meas_np, treat_np,
-                                  real_mask_np, treat_mask_np,
+                                  real_mask_np, data['treatments_mask'].squeeze(0).cpu().numpy(),
                                   verbose=False)['total'] or 0
     sofa_predicted = compute_sofa(pred_np, treat_np,
                                   pred_mask_np, treat_mask_np,
@@ -345,7 +360,7 @@ def cem(patient_i, classifier, predictor, predictor_config, device):
     print(f"{'='*60}")
 
     n_elite  = int(np.round(config.CEM_ELITE_FRAC * config.CEM_BATCH_SIZE))
-    n_params = len(CEM_TREATMENT_LOCAL_IDX)
+    n_params = 2* len(CEM_TREATMENT_LOCAL_IDX) if config.CEM_NO_TREAT_OPTION_ENABLED else len(CEM_TREATMENT_LOCAL_IDX)
     rewards_total         = np.zeros(config.CEM_NUM_STEPS)
     all_per_variable_diff = np.zeros(len(CEM_TREATMENT_LOCAL_IDX))
     all_cem_means  = np.zeros(len(CEM_TREATMENT_LOCAL_IDX))
