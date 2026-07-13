@@ -6,6 +6,7 @@ import torch
 import numpy as np
 import json
 import h5py, hdf5plugin
+import joblib
 from torch.utils.data import Dataset, DataLoader
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
@@ -75,7 +76,7 @@ def run(checkpoint_name):
                 context_mask = batch['context_mask'].to(device)
                 delta_t      = batch['delta_t'].to(device)
 
-                # World model prediction
+                # GRU prediction
                 pred = model(measurements, treatments, datetime, demographics,
                              context_mask if use_context_mask else None,
                              delta_t      if use_delta_t      else None)
@@ -130,6 +131,7 @@ def run(checkpoint_name):
                           ('clf', LogisticRegression(max_iter=1000, C=best_C,
                                                      class_weight='balanced'))])
     probe_ctx.fit(results['train']['X_context'], results['train']['y'])
+    joblib.dump(probe_ctx, os.path.join(config.CHECKPOINT_DIR, 'lr_context_classifier.pkl'))  # add this
     val_auroc_ctx  = roc_auc_score(results['val']['y'],
                                     probe_ctx.predict_proba(results['val']['X_context'])[:, 1])
     test_auroc_ctx = roc_auc_score(results['test']['y'],
@@ -156,6 +158,8 @@ def run(checkpoint_name):
                            ('clf', LogisticRegression(max_iter=1000, C=best_C_pred,
                                                       class_weight='balanced'))])
     probe_pred.fit(results['train']['X_predicted'], results['train']['y'])
+    joblib.dump(probe_pred, os.path.join(config.CHECKPOINT_DIR, 'lr_predicted_classifier.pkl'))  # add this
+
     val_auroc_pred  = roc_auc_score(results['val']['y'],
                                      probe_pred.predict_proba(results['val']['X_predicted'])[:, 1])
     test_auroc_pred = roc_auc_score(results['test']['y'],

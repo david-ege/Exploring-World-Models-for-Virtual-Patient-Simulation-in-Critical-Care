@@ -9,6 +9,7 @@ import time
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
+import numpy as np
 
 import config as config
 from data.dataset import HiRIDDataset
@@ -41,6 +42,14 @@ def get_lr(epoch):
         return (epoch + 1) / 5
     return 1.0
 
+def scheduled_sampling_epsilon(epoch, num_epochs, min_real, k=10):
+    exponent = min(epoch / k, 500)
+    raw      = k / (k + np.exp(exponent))
+    raw_0    = k / (k + np.exp(0.0))
+    raw_end  = k / (k + np.exp(num_epochs / k))
+    scaled   = (raw - raw_end) / (raw_0 - raw_end)
+    return min_real + (1.0 - min_real) * scaled
+
 def train(override_cfg={}):
     args = parse_args()
 
@@ -65,10 +74,10 @@ def train(override_cfg={}):
 
     train_dataset = HiRIDDataset(config.DATA_PATH, 'train', context_steps, target_steps,
                                  measurement_subset=config.MEASUREMENT_SUBSET,
-                                 treatment_subset=config.TREATMENT_SUBSET)
+                                 treatment_subset=config.TREATMENT_SUBSET, use_delta_t=config.PRED_USE_DELTA_T, include_prev_window=config.PRED_SCHEDULED_SAMPLING_ENABLED)
     val_dataset   = HiRIDDataset(config.DATA_PATH, 'val',   context_steps, target_steps,
                                  measurement_subset=config.MEASUREMENT_SUBSET,
-                                 treatment_subset=config.TREATMENT_SUBSET)
+                                 treatment_subset=config.TREATMENT_SUBSET, use_delta_t=config.PRED_USE_DELTA_T, include_prev_window=config.PRED_SCHEDULED_SAMPLING_ENABLED)
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True,
                               num_workers=4, pin_memory=True)
@@ -90,6 +99,10 @@ def train(override_cfg={}):
         use_delta_t=config.PRED_USE_DELTA_T
     ).to(device)
 
+
+    #SCHEDULED SAMPLING
+    use_scheduled = config.PRED_SCHEDULED_SAMPLING_ENABLED
+
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
                                  weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=get_lr)
@@ -102,6 +115,8 @@ def train(override_cfg={}):
         epoch_start = time.time()
         model.train()
         train_loss = 0.0
+        prev_pred = None  # Reset previous prediction at the start of each epoch
+
         for batch in train_loader:
             measurements = batch['measurements'].to(device)
             treatments   = batch['treatments'].to(device)
@@ -109,9 +124,29 @@ def train(override_cfg={}):
             demographics = batch['demographics'].to(device)
             target       = batch['target'].to(device)
             target_mask  = batch['target_mask'].to(device)
+            context_mask_batch = batch['context_mask'].to(device)
+
+            if use_scheduled:
+                epsilon  = scheduled_sampling_epsilon(epoch, num_epochs,
+                            config.PRED_SCHEDULED_SAMPLING_MIN_REAL,
+                            k=config.PRED_SCHEDULED_SAMPLING_K)
+                has_prev = batch['has_prev'].to(device)
+                use_pred = (torch.rand(measurements.shape[0]).to(device) > epsilon) & has_prev
+
+                if use_pred.any():
+                    with torch.no_grad():
+                        prev_pred_all = model(
+                            batch['prev_measurements'].to(device),
+                            batch['prev_treatments'].to(device),
+                            batch['prev_datetime'].to(device),
+                            demographics,
+                            batch['prev_context_mask'].to(device) if config.PRED_USE_CONTEXT_MASK else None,
+                            None)
+                    measurements[use_pred]       = prev_pred_all[use_pred]
+                    context_mask_batch[use_pred] = 1.0
 
             optimizer.zero_grad()
-            pred = model(measurements, treatments, datetime, demographics,batch['context_mask'].to(device) if config.PRED_USE_CONTEXT_MASK else None,batch['delta_t'].to(device) if config.PRED_USE_DELTA_T else None)
+            pred = model(measurements, treatments, datetime, demographics,context_mask_batch if config.PRED_USE_CONTEXT_MASK else None,batch['delta_t'].to(device) if config.PRED_USE_DELTA_T else None)
             loss = masked_mse(pred, target, target_mask)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), config.PRED_GRAD_CLIP)
@@ -139,7 +174,13 @@ def train(override_cfg={}):
         scheduler.step()
         epoch_time = time.time() - epoch_start
         remaining  = (num_epochs - epoch - 1) * epoch_time
-        print(f"Epoch {epoch+1}/{num_epochs} — train loss: {train_loss:.4f}, val loss: {val_loss:.4f} "
+
+        if use_scheduled:
+            epsilon_log = scheduled_sampling_epsilon(epoch, num_epochs, config.PRED_SCHEDULED_SAMPLING_MIN_REAL,k=config.PRED_SCHEDULED_SAMPLING_K)
+            print(f"Epoch {epoch+1}/{num_epochs} — train loss: {train_loss:.4f}, val loss: {val_loss:.4f} "
+          f"| ss_epsilon: {epsilon_log:.3f} | {epoch_time:.0f}s/epoch | ETA: {remaining/60:.0f}min")
+        else:
+            print(f"Epoch {epoch+1}/{num_epochs} — train loss: {train_loss:.4f}, val loss: {val_loss:.4f} "
           f"| {epoch_time:.0f}s/epoch | ETA: {remaining/60:.0f}min")
         
         if val_loss < best_val_loss:
@@ -157,12 +198,12 @@ def train(override_cfg={}):
                     'n_treatments':       n_treatments,
                     'measurement_subset': config.MEASUREMENT_SUBSET,
                     'treatment_subset':   config.TREATMENT_SUBSET,
-                    'uses_context_mask': True,
-                    'uses_delta_t':      True,
                     'weight_decay': weight_decay,
                     'uses_context_mask': config.PRED_USE_CONTEXT_MASK,
                     'uses_delta_t':      config.PRED_USE_DELTA_T,
                     'data_set':          config.DATA_PATH,
+                    'scheduled_sampling_k':      config.PRED_SCHEDULED_SAMPLING_K,
+                    'scheduled_sampling_min_real': config.PRED_SCHEDULED_SAMPLING_MIN_REAL,
                 }
             }, f"{config.CHECKPOINT_DIR}/{checkpoint_name}")
             print(f" Saved: {checkpoint_name}")

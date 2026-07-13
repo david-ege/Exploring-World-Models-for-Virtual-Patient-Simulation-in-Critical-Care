@@ -1,0 +1,17 @@
+{
+  "data_mode": "real",
+  "best_config": {
+    "hidden_dim": 64,
+    "dropout": 0.2
+  },
+  "best_val_auroc": 0.7803872053872053,
+  "test_auroc": 0.8732017397122784,
+  "grid_results": [
+    {
+      "hidden_dim": 64,
+      "dropout": 0.2,
+      "val_auroc": 0.7803872053872053,
+      "test_auroc": 0.8732017397122784
+    }
+  ]
+}

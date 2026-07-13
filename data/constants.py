@@ -54,3 +54,51 @@ CEM_TREATMENT_NAMES = [
     'IN', 'norepinephrine', 'epinephrine', 'dobutamine',
     'Loop diuretics', 'Propofol', 'Insulin Kurzwirksam', 'Heparin'
 ]
+CEM_TREATMENTS = [
+    {'name': 'IN',                  'local_idx': 1,  'type': 'continuous'},
+    {'name': 'norepinephrine',      'local_idx': 14, 'type': 'continuous'},
+    {'name': 'epinephrine',         'local_idx': 15, 'type': 'continuous'},
+    {'name': 'dobutamine',          'local_idx': 16, 'type': 'continuous'},
+    {'name': 'Loop diuretics',      'local_idx': 34, 'type': 'binary'},
+    {'name': 'Propofol',            'local_idx': 44, 'type': 'continuous'},
+    {'name': 'Insulin Kurzwirksam', 'local_idx': 47, 'type': 'binary'},
+    {'name': 'Heparin',             'local_idx': 58, 'type': 'continuous'},
+]
+# SOFA Score variable indices
+SOFA_MEAS_LOCAL = {
+    'PaO2':       42,  # a_PO2
+    'MAP':         4,  # ABPm
+    'platelets':  87,  # platelet count
+    'bilirubin':  64,  # bilirubine, total
+    'creatinine': 58,  # creatinine
+    'GCS_E':      25,  # GCS Augenöffnen
+    'GCS_V':      23,  # GCS Antwort
+    'GCS_M':      24,  # GCS Motorik
+    'OUTurine_h':         22,
+}
+
+SOFA_TREAT_LOCAL = {
+    'FiO2':           4,  
+    'norepinephrine': 14,
+    'epinephrine':    15,
+    'dobutamine':     16,
+}
+
+SOFA_MEAS_GLOBAL = {
+    'PaO2':       55,
+    'MAP':         5,
+    'platelets':  100,
+    'bilirubin':   77,
+    'creatinine':  71,
+    'GCS_E':       27,
+    'GCS_V':       25,
+    'GCS_M':       26,
+    'OUTurine_h':         24,
+}
+
+SOFA_TREAT_GLOBAL = {
+    'FiO2':           35,
+    'norepinephrine': 118,
+    'epinephrine':    119,
+    'dobutamine':     120,
+}

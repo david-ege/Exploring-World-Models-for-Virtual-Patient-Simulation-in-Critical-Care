@@ -3,6 +3,7 @@ import os
 import sys
 sys.path.append('/home/bbe9928/thesis_work/hirid_jepa')
 
+import joblib #loading sklearn models  (lr classifier)
 import torch
 import numpy as np
 import json
@@ -14,6 +15,10 @@ from data.constants import (MEASUREMENT_IDX, TREATMENT_IDX, DEMOGRAPHIC_IDX,
                              DATETIME_IDX, CEM_TREATMENT_LOCAL_IDX, CEM_TREATMENT_NAMES, CONTINUOUS_CEM, BINARY_CEM)
 from models.gru_predictor import GRUPredictor
 from models.gru_classifier import GRUClassifier
+from data.sofa import compute_sofa
+
+with open ('data/cem_treatment_percentiles.json') as percentile_json:
+    PERCENTILES = json.load(percentile_json)
 
 def to_device(data, device):
     return {k: v.to(device) if isinstance(v, torch.Tensor) else v
@@ -45,6 +50,8 @@ def load_patient_data(h5_path, split, patient_idx, device=None):
                                      dtype=torch.float32).unsqueeze(0),
         'treatments':   torch.tensor(context[:, t_cols],
                                      dtype=torch.float32).unsqueeze(0),
+        'treatments_mask': torch.tensor(context_mask[:, t_cols], 
+                                        dtype=torch.float32).unsqueeze(0),
         'datetime':     torch.tensor(context[:, DATETIME_IDX],
                                      dtype=torch.float32).unsqueeze(0),
         'demographics': torch.tensor(context[0, DEMOGRAPHIC_IDX],
@@ -62,15 +69,16 @@ def load_patient_data(h5_path, split, patient_idx, device=None):
         'all_treatments': torch.tensor(all_treatments,
                                      dtype=torch.float32).unsqueeze(0),
         'all_treatments_mask': torch.tensor(all_treatments_mask, dtype=torch.float32).unsqueeze(0),
-        'current_t' : t  - start                                   
+        'current_t' : t  - start,
+        'start' : start
     }
     if device is not None:
         data = to_device(data, device)
 
     return data
 
-def load_predictor(device):
-    checkpoint = torch.load(config.get_checkpoint_path(config.BEST_CHECKPOINT), map_location=device)
+def load_predictor(device, path = config.get_checkpoint_path(config.BEST_CHECKPOINT)):
+    checkpoint = torch.load(path, map_location=device)
     checkpoint_config        = checkpoint['config']
     state_dict = checkpoint['model_state_dict']
 
@@ -89,30 +97,67 @@ def load_predictor(device):
     predictor.eval()
     return predictor, checkpoint_config
 
+#turns measurements into features for LR classifier (mean, std, obs_rate per variable)
+def summarize(arr, mask):
+    obs_mean = np.where(mask==1, arr, 0.0).sum(axis=0) / np.maximum(mask.sum(axis=0), 1)
+    obs_std  = np.sqrt(
+        np.where(mask==1, (arr - obs_mean)**2, 0.0).sum(axis=0) /
+        np.maximum(mask.sum(axis=0)-1, 1)
+    )
+    obs_rate = mask.mean(axis=0)
+    return np.concatenate([obs_mean, obs_std, obs_rate])
+
+#load either LR or GRU classifier depending on config.BEST_CLASSIFIER_CHECKPOINT
 def load_classifier(device):
-    checkpoint = torch.load(config.get_checkpoint_path(config.BEST_CLASSIFIER_CHECKPOINT), map_location=device)
-    classifier = GRUClassifier(
-        hidden_dim=config.CLASSIFIER_HIDDEN_DIM,
-        num_layers=config.CLASSIFIER_NUM_LAYERS,
-        dropout=config.CLASSIFIER_DROPOUT,
-        n_measurements=len(MEASUREMENT_IDX),
-        use_context_mask=config.CLASSIFIER_USE_CONTEXT_MASK,
-        use_delta_t=config.CLASSIFIER_USE_DELTA_T
-    ).to(device)
-    classifier.load_state_dict(checkpoint)
-    classifier.eval()
-    return classifier
+    path = config.get_checkpoint_path(config.BEST_CLASSIFIER_CHECKPOINT)
+
+    if path.endswith('.pkl'):
+        lr_model = joblib.load(path)
+
+        def classifier(measurements, datetime, demographics,
+                       context_mask=None, delta_t=None):
+            """Wrap LR to match GRU classifier call signature."""
+            pred_np   = measurements.squeeze(0).cpu().numpy()
+            mask_np   = np.ones_like(pred_np) if context_mask is None \
+                        else context_mask.squeeze(0).cpu().numpy()
+            demo_np   = demographics.squeeze(0).cpu().numpy()
+            feat      = np.concatenate([summarize(pred_np, mask_np), demo_np])
+            feat      = np.nan_to_num(feat, nan=0.0).reshape(1, -1)
+            prob      = float(lr_model.predict_proba(feat)[0, 1])
+            return torch.tensor(prob, dtype=torch.float32, device=device)
+
+        return classifier
+
+    else:
+        checkpoint = torch.load(path, map_location=device)
+        model = GRUClassifier(
+            hidden_dim=config.CLASSIFIER_HIDDEN_DIM,
+            num_layers=config.CLASSIFIER_NUM_LAYERS,
+            dropout=config.CLASSIFIER_DROPOUT,
+            n_measurements=len(MEASUREMENT_IDX),
+            use_context_mask=config.CLASSIFIER_USE_CONTEXT_MASK,
+            use_delta_t=config.CLASSIFIER_USE_DELTA_T
+        ).to(device)
+        model.load_state_dict(checkpoint)
+        model.eval()
+        return model
 
 def create_treatments_vector(theta, device, original_treatments):
     treatments = original_treatments.clone()
-    
+    treatments_flat = np.zeros(len(theta))
+
     for cem_i, local_idx in enumerate(CEM_TREATMENT_LOCAL_IDX):
+        p1 = PERCENTILES[CEM_TREATMENT_NAMES[cem_i]]['p1']
+        p99 = PERCENTILES[CEM_TREATMENT_NAMES[cem_i]]['p99']
+        val       = float(np.clip(theta[cem_i], p1, p99))
+        treatments_flat[cem_i] = val
+
         if local_idx in CONTINUOUS_CEM:
-            treatments[0, :, local_idx] = theta[cem_i]
+            treatments[0, :, local_idx] = val
         elif local_idx in BINARY_CEM:
-            treatments[0, 0,  local_idx] = theta[cem_i]
+            treatments[0, 0,  local_idx] = val
             treatments[0, 1:, local_idx] = 0.0
-    return treatments.to(device)
+    return treatments.to(device), treatments_flat
 
 def treatment_diff(cem_treatments, original_treatments, original_treatment_mask):
     per_variable_diff = []
@@ -150,18 +195,104 @@ def evaluate_policy(theta, classifier, predictor, predictor_config, data, device
     context_mask = data['context_mask'].to(device)
     delta_t      = data['delta_t'].to(device)
 
-    treatments = create_treatments_vector(theta, device, treatments)
+    treatments, treatments_flat = create_treatments_vector(theta, device, treatments)
+
     with torch.no_grad():
-        new_state = predictor(measurements, treatments, datetime, demographics,context_mask if use_context_mask else None,delta_t if use_delta_t else None)
-        mortality_before = classifier(measurements, datetime, demographics, context_mask if config.CLASSIFIER_USE_CONTEXT_MASK else None,delta_t if config.CLASSIFIER_USE_DELTA_T else None)
-        datetime_predicted = (datetime + (config.TARGET_STEPS / data['stay_length'])).clamp(0.0,1.0)
+        new_state = predictor(
+            measurements, treatments, datetime, demographics,
+            context_mask if use_context_mask else None,
+            delta_t      if use_delta_t      else None)
+
+        mortality_before = classifier(
+            measurements, datetime, demographics,
+            context_mask if config.CLASSIFIER_USE_CONTEXT_MASK else None,
+            delta_t      if config.CLASSIFIER_USE_DELTA_T      else None)
+
+        datetime_predicted     = (datetime + (config.TARGET_STEPS / data['stay_length'])).clamp(0.0, 1.0)
         context_mask_predicted = torch.ones_like(new_state)
-        delta_t_predicted = torch.zeros_like(new_state) 
-        mortality_predicted = classifier(new_state, datetime_predicted, demographics, context_mask_predicted if config.CLASSIFIER_USE_CONTEXT_MASK else None,delta_t_predicted if config.CLASSIFIER_USE_DELTA_T else None)
+        delta_t_predicted      = torch.zeros_like(new_state)
 
-    reward = mortality_before - mortality_predicted
+        mortality_predicted = classifier(
+            new_state, datetime_predicted, demographics,
+            context_mask_predicted if config.CLASSIFIER_USE_CONTEXT_MASK else None,
+            delta_t_predicted      if config.CLASSIFIER_USE_DELTA_T      else None)
 
-    return reward, mortality_predicted, mortality_before,new_state, datetime_predicted, context_mask_predicted, delta_t_predicted, treatments
+    # SOFA before and after
+    real_meas_np  = measurements.squeeze(0).cpu().numpy()
+    real_mask_np  = context_mask.squeeze(0).cpu().numpy()
+    treat_np      = treatments.squeeze(0).cpu().numpy()
+    treat_mask_np = np.ones_like(treat_np)
+    pred_np       = new_state.squeeze(0).cpu().numpy()
+    pred_mask_np  = np.ones_like(pred_np)
+
+    sofa_before    = compute_sofa(real_meas_np, treat_np,
+                                  real_mask_np, treat_mask_np,
+                                  verbose=False)['total'] or 0
+    sofa_predicted = compute_sofa(pred_np, treat_np,
+                                  pred_mask_np, treat_mask_np,
+                                  verbose=False)['total'] or 0
+
+    sofa_improvement     = (sofa_before - sofa_predicted) / 24.0
+    treatment_sq_dist_0  = np.mean(treatments_flat ** 2)
+
+    reward = (mortality_before - mortality_predicted) \
+           + config.CEM_GAMMA_SOFA * sofa_improvement \
+           - config.CEM_GAMMA_TREATMENT_SIZE * treatment_sq_dist_0
+
+    return (reward, mortality_predicted, mortality_before,
+            new_state, datetime_predicted, context_mask_predicted,
+            delta_t_predicted, treatments)
+
+def simulate_baseline(initial_data, predictor, predictor_config,
+                      classifier, device):
+    """
+    Simulate CEM_NUM_STEPS forward using actual observed treatments.
+    initial_data should be data dict AFTER the initial step-ahead,
+    matching the starting point of CEM optimization.
+    """
+    use_context_mask = predictor_config.get('uses_context_mask', False)
+    use_delta_t      = predictor_config.get('uses_delta_t', False)
+
+    # Deep copy so we don't modify the original
+    sim_data = {k: v.clone() if isinstance(v, torch.Tensor) else v
+                for k, v in initial_data.items()}
+
+    with torch.no_grad():
+        for sim_step in range(config.CEM_NUM_STEPS):
+            sim_state = predictor(
+                sim_data['measurements'].to(device),
+                sim_data['treatments'].to(device),
+                sim_data['datetime'].to(device),
+                sim_data['demographics'].to(device),
+                sim_data['context_mask'].to(device) if use_context_mask else None,
+                sim_data['delta_t'].to(device)      if use_delta_t      else None
+            )
+            sim_dt_pred = (sim_data['datetime'].to(device) +
+                          (config.TARGET_STEPS / sim_data['stay_length'])).clamp(0, 1)
+
+            sim_data['measurements'] = sim_state
+            sim_data['datetime']     = sim_dt_pred
+            sim_data['context_mask'] = torch.ones_like(sim_state)
+            sim_data['delta_t']      = torch.zeros_like(sim_state)
+
+            next_t = sim_data['current_t'] + config.TARGET_STEPS
+            if next_t + config.CONTEXT_STEPS <= sim_data['stay_length']:
+                next_trt = sim_data['all_treatments'][
+                    0, next_t:next_t + config.CONTEXT_STEPS, :]
+                sim_data['treatments'] = next_trt.unsqueeze(0).to(device)
+                sim_data['current_t']  = next_t
+            else:
+                break
+
+        sim_mortality = classifier(
+            sim_state,
+            sim_dt_pred,
+            sim_data['demographics'].to(device),
+            torch.ones_like(sim_state) if config.CLASSIFIER_USE_CONTEXT_MASK else None,
+            None
+        ).item()
+
+    return sim_mortality
 
 #https://sesen.ai/blog/cross-entropy-method-evolution-style-rl
 def cem(patient_i, classifier, predictor, predictor_config, device):
@@ -201,6 +332,8 @@ def cem(patient_i, classifier, predictor, predictor_config, device):
         print(f"\n  Reached end of stay at step 0, before optimizing any treatments, stopping early")
         pass
 
+    #save starting data
+    initial_cem_data = {k: v.clone() if isinstance(v, torch.Tensor) else v for k, v in data.items()}
 
     print(f"\n{'='*60}")
     print(f"Patient {data['pid']} (index {patient_i})")
@@ -316,6 +449,8 @@ def cem(patient_i, classifier, predictor, predictor_config, device):
             ).item()
     f.close()
 
+    baseline_simulated_mortality = simulate_baseline(initial_cem_data, predictor, predictor_config, classifier, device)
+
     avg_per_var_diff = all_per_variable_diff / steps_executed
     cem_means        = all_cem_means  / steps_executed
     orig_means       = all_orig_means / steps_executed
@@ -327,8 +462,8 @@ def cem(patient_i, classifier, predictor, predictor_config, device):
           f"{mortality_predicted.item():.4f}")
     if actual_final_mortality is not None:
         print(f"Actual measured mortality (final): {actual_final_mortality:.4f}")
-        print(f"CEM vs actual gap:                 "
-              f"{mortality_predicted.item() - actual_final_mortality:+.4f}")
+    if baseline_simulated_mortality is not None:
+        print(f"Simulated Mortality Using Baseline Treatments: {baseline_simulated_mortality:.4f}")
     print(f"Total improvement (init->final):   "
           f"{initial_mortality - mortality_predicted.item():+.4f} "
           f"({(initial_mortality - mortality_predicted.item()) / max(initial_mortality, 1e-8) * 100:+.1f}%)")
@@ -351,8 +486,7 @@ if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     predictor, predictor_config = load_predictor(device=device)
     classifier = load_classifier(device=device)
+    #23
+    cem(24, classifier=classifier, predictor=predictor, predictor_config=predictor_config, device=device)
 
-    NU_PATIENTS = 1
-    for patient in range(NU_PATIENTS):
-        cem(23, classifier=classifier, predictor=predictor, predictor_config=predictor_config, device=device)
         
