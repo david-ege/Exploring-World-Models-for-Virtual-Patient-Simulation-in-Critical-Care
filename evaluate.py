@@ -42,8 +42,8 @@ def evaluate(checkpoint_name=None, results_dir=None):
     else:
         print("Warning: old checkpoint format, using config.py values")
         state_dict = checkpoint
-        n_m = len(config.MEASUREMENT_SUBSET) if config.MEASUREMENT_SUBSET else N_MEASUREMENTS
-        n_t = len(config.TREATMENT_SUBSET)   if config.TREATMENT_SUBSET   else N_TREATMENTS
+        n_m =  N_MEASUREMENTS
+        n_t = N_TREATMENTS
         cfg = {
             'hidden_dim':         config.PRED_HIDDEN_DIM,
             'num_layers':         config.PRED_NUM_LAYERS,
@@ -52,16 +52,14 @@ def evaluate(checkpoint_name=None, results_dir=None):
             'encoder_dim':        config.PRED_ENCODER_DIM,
             'n_measurements':     n_m,
             'n_treatments':       n_t,
-            'measurement_subset': config.MEASUREMENT_SUBSET,
-            'treatment_subset':   config.TREATMENT_SUBSET,
+            'measurement_subset': None,
+            'treatment_subset':   None,
 
         }
 
     test_dataset = HiRIDDataset(
         config.DATA_PATH, 'test',
         config.CONTEXT_STEPS, cfg['target_steps'],
-        measurement_subset=cfg['measurement_subset'],
-        treatment_subset=cfg['treatment_subset']
     )
     test_loader = DataLoader(test_dataset, batch_size=config.PRED_BATCH_SIZE,
                              shuffle=False, num_workers=4)
@@ -119,8 +117,7 @@ def evaluate(checkpoint_name=None, results_dir=None):
     all_columns = [c.decode('utf-8') for c in f['columns'][:]]
     f.close()
 
-    active_subset      = cfg['measurement_subset'] if cfg['measurement_subset'] is not None else list(range(len(MEASUREMENT_IDX)))
-    active_global_idx  = [MEASUREMENT_IDX[i] for i in active_subset]
+    active_global_idx  = [MEASUREMENT_IDX[i] for i in list(range(len(MEASUREMENT_IDX)))]
     measurement_names  = [all_columns[i] for i in active_global_idx]
 
     # === Per-variable MAE on OBSERVED timesteps only (supervisor requirement) ===

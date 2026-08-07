@@ -24,11 +24,11 @@ def compute_delta_t(mask_window):
 
 class HiRIDDataset(Dataset):
     def __init__(self, h5_path, split, context_steps=36, target_steps=12,
-                 measurement_subset=None, treatment_subset=None, use_delta_t = True, include_prev_window=False):
+                use_delta_t = True, include_prev_window=False):
         self.context_steps = context_steps
         self.target_steps  = target_steps
-        self.m_idx = measurement_subset if measurement_subset is not None else list(range(len(MEASUREMENT_IDX)))
-        self.t_idx = treatment_subset   if treatment_subset   is not None else list(range(len(TREATMENT_IDX)))
+        self.m_idx =  list(range(len(MEASUREMENT_IDX)))
+        self.t_idx =  list(range(len(TREATMENT_IDX)))
         self.use_delta_t = use_delta_t
         self.include_prev_window = include_prev_window
 
@@ -92,7 +92,7 @@ class HiRIDDataset(Dataset):
         # t is an absolute row index, need to find the patient's start
         # to know if a previous window exists
             patient_start = self._get_patient_start(t)
-            t_prev = t - self.context_steps
+            t_prev = t - self.target_steps
         
             if t_prev >= patient_start:
                 prev_context      = self.data[t_prev : t_prev + self.context_steps]

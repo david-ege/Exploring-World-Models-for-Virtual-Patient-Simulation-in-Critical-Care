@@ -38,7 +38,7 @@ def load_patient_data(h5_path, split, patient_idx, device=None):
                    if 'delta_t' in f else None
     all_treatments = f['data'][split][start:end][:, TREATMENT_IDX]
     all_treatments_mask = f['mask'][split][start:end][:, TREATMENT_IDX]
-    print(f"t={t}, context_steps={config.CONTEXT_STEPS}, end={end}, stay_length={stay_length}")
+    #print(f"t={t}, context_steps={config.CONTEXT_STEPS}, end={end}, stay_length={stay_length}")
 
     f.close()
 
@@ -256,7 +256,8 @@ def evaluate_policy(theta, classifier, predictor, predictor_config, data, device
 
     return (reward, mortality_predicted, mortality_before,
             new_state, datetime_predicted, context_mask_predicted,
-            delta_t_predicted, treatments)
+            delta_t_predicted, treatments,
+            sofa_before, sofa_predicted)
 
 def simulate_baseline(initial_data, predictor, predictor_config,
                       classifier, device):
@@ -307,10 +308,21 @@ def simulate_baseline(initial_data, predictor, predictor_config,
             None
         ).item()
 
-    return sim_mortality
+    # Compute SOFA on final simulated state
+    sim_meas_np   = sim_state.squeeze(0).cpu().numpy()
+    sim_treat_np  = sim_data['treatments'].squeeze(0).cpu().numpy()
+    sim_mask_np   = np.ones_like(sim_meas_np)
+    sim_treat_mask = sim_data['treatments_mask'].squeeze(0).cpu().numpy() \
+                     if 'treatments_mask' in sim_data else np.ones_like(sim_treat_np)
+
+    baseline_sofa = compute_sofa(sim_meas_np, sim_treat_np,
+                                 sim_mask_np, sim_treat_mask,
+                                  verbose=False)['total'] or 0
+
+    return sim_mortality, baseline_sofa
 
 #https://sesen.ai/blog/cross-entropy-method-evolution-style-rl
-def cem(patient_i, classifier, predictor, predictor_config, device):
+def cem(patient_i, classifier, predictor, predictor_config, device, verbose = True):
     data = load_patient_data(config.CEM_DATASET, split='test',
                              patient_idx=patient_i, device=device)
 
@@ -344,32 +356,38 @@ def cem(patient_i, classifier, predictor, predictor_config, device):
         data['context_mask'] = context_mask_predicted
         data['delta_t']      = delta_t_predicted
     else:
-        print(f"\n  Reached end of stay at step 0, before optimizing any treatments, stopping early")
+        if verbose : 
+            print(f"\n  Reached end of stay at step 0, before optimizing any treatments, stopping early")
         pass
 
     #save starting data
     initial_cem_data = {k: v.clone() if isinstance(v, torch.Tensor) else v for k, v in data.items()}
 
-    print(f"\n{'='*60}")
-    print(f"Patient {data['pid']} (index {patient_i})")
-    print(f"Stay length: {data['stay_length']} timesteps "
-          f"({data['stay_length']*5/60:.1f}h)")
-    print(f"Initial mortality risk: {initial_mortality:.4f}")
-    print(f"CEM: {config.CEM_NUM_STEPS} steps x {config.TARGET_STEPS} timesteps "
-          f"= {config.CEM_NUM_STEPS * config.TARGET_STEPS * 5 / 60:.1f}h lookahead")
-    print(f"{'='*60}")
+    if verbose:
+        print(f"\n{'='*60}")
+        print(f"Patient {data['pid']} (index {patient_i})")
+        print(f"Stay length: {data['stay_length']} timesteps "
+            f"({data['stay_length']*5/60:.1f}h)")
+        print(f"Initial mortality risk: {initial_mortality:.4f}")
+        print(f"CEM: {config.CEM_NUM_STEPS} steps x {config.TARGET_STEPS} timesteps "
+            f"= {config.CEM_NUM_STEPS * config.TARGET_STEPS * 5 / 60:.1f}h lookahead")
+        print(f"{'='*60}")
 
     n_elite  = int(np.round(config.CEM_ELITE_FRAC * config.CEM_BATCH_SIZE))
     n_params = 2* len(CEM_TREATMENT_LOCAL_IDX) if config.CEM_NO_TREAT_OPTION_ENABLED else len(CEM_TREATMENT_LOCAL_IDX)
     rewards_total         = np.zeros(config.CEM_NUM_STEPS)
-    all_per_variable_diff = np.zeros(len(CEM_TREATMENT_LOCAL_IDX))
-    all_cem_means  = np.zeros(len(CEM_TREATMENT_LOCAL_IDX))
-    all_orig_means = np.zeros(len(CEM_TREATMENT_LOCAL_IDX))
+    all_per_variable_diff = []  # list of arrays, one per step
+    all_cem_means         = []
+    all_orig_means        = []
     steps_executed = 0
     mortality_predicted = None
 
+    sofa_before_first    = None
+    sofa_predicted_last = None
+
     for step in range(config.CEM_NUM_STEPS):
-        print(f"\n--- Step {step+1}/{config.CEM_NUM_STEPS} "
+        if verbose:
+            print(f"\n--- Step {step+1}/{config.CEM_NUM_STEPS} "
               f"(t={data['current_t']} -> "
               f"t={data['current_t'] + config.TARGET_STEPS}) ---")
 
@@ -380,7 +398,9 @@ def cem(patient_i, classifier, predictor, predictor_config, device):
             noise_multiplier = max(1.0 - iter / float(config.CEM_STDEV_DECAY_TIME), 0)
             sample_std = np.sqrt(theta_stdev + np.square(config.CEM_EXTRA_STDEV) * noise_multiplier)
             thetas  = theta_mean + sample_std * np.random.randn(config.CEM_BATCH_SIZE, n_params)
-            rewards = np.array([evaluate_policy(th, classifier, predictor,predictor_config, data, device)[0].item()for th in thetas])
+            rewards = np.array([evaluate_policy(th, classifier, predictor,
+                                                predictor_config, data, device)[0].item()
+                                for th in thetas])
 
             elite_inds   = rewards.argsort()[-n_elite:]
             elite_thetas = thetas[elite_inds]
@@ -388,7 +408,8 @@ def cem(patient_i, classifier, predictor, predictor_config, device):
             theta_stdev  = elite_thetas.var(axis=0)
 
             if iter % 10 == 0 or iter == config.CEM_NUM_ITER - 1:
-                print(f"  Iter {iter+1:3d}/{config.CEM_NUM_ITER} | "
+                if verbose:
+                    print(f"  Iter {iter+1:3d}/{config.CEM_NUM_ITER} | "
                       f"Mean: {rewards.mean():.4f} | "
                       f"Max: {rewards.max():.4f} | "
                       f"Std: {rewards.std():.4f} | "
@@ -399,19 +420,29 @@ def cem(patient_i, classifier, predictor, predictor_config, device):
         (reward, mortality_predicted, mortality_before,
          state_predicted, datetime_predicted,
          context_mask_predicted, delta_t_predicted,
-         cem_treatments) = evaluate_policy(
+         cem_treatments, sofa_before_step, sofa_predicted_step) = evaluate_policy(
             theta_mean, classifier, predictor, predictor_config, data, device)
 
-        #compute difference to actual treatment
-        current_mask = data['all_treatments_mask'][0, data['current_t']:data['current_t'] + config.CONTEXT_STEPS, :].unsqueeze(0).to(device)
-        per_var_diff, step_diff_metric, step_cem_means, step_orig_means = treatment_diff(cem_treatments, data['treatments'].to(device), current_mask)
-        all_per_variable_diff += per_var_diff
-        all_cem_means  += step_cem_means
-        all_orig_means += step_orig_means
-        steps_executed += 1
+        # Store stats from this step
+        if step == 0:
+            sofa_before_first    = sofa_before_step
+        sofa_predicted_last = sofa_predicted_step
+
+
         rewards_total[step] = reward.item()
 
-        # Update data
+        # Treatment diff
+        current_mask = data['all_treatments_mask'][
+            0, data['current_t']:data['current_t'] + config.CONTEXT_STEPS, :
+        ].unsqueeze(0).to(device)
+        per_var_diff, step_diff_metric, step_cem_means, step_orig_means = treatment_diff(
+            cem_treatments, data['treatments'].to(device), current_mask)
+        all_per_variable_diff.append(per_var_diff.copy())
+        all_cem_means.append(step_cem_means.copy())
+        all_orig_means.append(step_orig_means.copy())
+        steps_executed += 1
+
+        # Update data for next step
         data['measurements'] = state_predicted
         data['datetime']     = datetime_predicted
         data['context_mask'] = context_mask_predicted
@@ -425,19 +456,26 @@ def cem(patient_i, classifier, predictor, predictor_config, device):
             data['treatments'] = next_treatments.unsqueeze(0).to(device)
             data['current_t']  = next_t
         else:
-            print(f"\n  Reached end of stay at step {step+1}, stopping early")
+            if verbose:
+                print(f"\n  Reached end of stay at step {step+1}, stopping early")
             break
+        
+        if verbose:
+            print(f"\n  >> Step {step+1} executed:")
+            print(f"     mortality_before:    {mortality_before.item():.4f}")
+            print(f"     mortality_predicted: {mortality_predicted.item():.4f}")
+            print(f"     sofa_before:         {sofa_before_step}")
+            print(f"     sofa_predicted:      {sofa_predicted_step}")
+            print(f"     reward:              {reward.item():+.4f}")
+            print(f"     treatment_diff:      {step_diff_metric:.4f}")
+            print(f"     per-variable diff:")
+            for name, d in zip(CEM_TREATMENT_NAMES, per_var_diff):
+                print(f"       {name:25s}: {d:.4f}")
 
 
-        print(f"\n  >> Step {step+1} executed:")
-        print(f"     mortality_before:    {mortality_before.item():.4f}")
-        print(f"     mortality_predicted: {mortality_predicted.item():.4f}")
-        print(f"     reward:              {reward.item():+.4f}")
-        print(f"     treatment_diff:      {step_diff_metric:.4f}")
-        print(f"     per-variable diff:")
-        for name, d in zip(CEM_TREATMENT_NAMES, per_var_diff):
-            print(f"       {name:25s}: {d:.4f}")
-
+    cem_means_per_step  = np.array(all_cem_means)    # (steps_executed, n_cem_vars)
+    orig_means_per_step = np.array(all_orig_means)
+    avg_per_var_diff    = np.array(all_per_variable_diff).mean(axis=0)
     # Load actual measured state at final timestep
     f = h5py.File(config.CEM_DATASET, 'r')
     windows       = f['windows']['test'][:]
@@ -464,37 +502,114 @@ def cem(patient_i, classifier, predictor, predictor_config, device):
             ).item()
     f.close()
 
-    baseline_simulated_mortality = simulate_baseline(initial_cem_data, predictor, predictor_config, classifier, device)
+    baseline_simulated_mortality, baseline_simulated_sofa = simulate_baseline(initial_cem_data, predictor, predictor_config, classifier, device)
 
-    avg_per_var_diff = all_per_variable_diff / steps_executed
-    cem_means        = all_cem_means  / steps_executed
-    orig_means       = all_orig_means / steps_executed
+    if verbose:
+        print(f"\n{'='*60}")
+        print(f"Patient {data['pid']} — CEM complete")
+        print(f"Initial mortality (t=0):           {initial_mortality:.4f}")
+        print(f"Final predicted mortality (CEM):   "
+            f"{mortality_predicted.item():.4f}")
+        if actual_final_mortality is not None:
+            print(f"Actual measured mortality (final): {actual_final_mortality:.4f}")
+        if baseline_simulated_mortality is not None:
+            print(f"Simulated Mortality Using Baseline Treatments: {baseline_simulated_mortality:.4f}")
+        print(f"Total improvement (init->final):   "
+            f"{initial_mortality - mortality_predicted.item():+.4f} "
+            f"({(initial_mortality - mortality_predicted.item()) / max(initial_mortality, 1e-8) * 100:+.1f}%)")
+        print(f"Per-step rewards:                  {rewards_total.round(4)}")
+        print(f"Total reward:                      {rewards_total.sum():.4f}")
 
-    print(f"\n{'='*60}")
-    print(f"Patient {data['pid']} — CEM complete")
-    print(f"Initial mortality (t=0):           {initial_mortality:.4f}")
-    print(f"Final predicted mortality (CEM):   "
-          f"{mortality_predicted.item():.4f}")
-    if actual_final_mortality is not None:
-        print(f"Actual measured mortality (final): {actual_final_mortality:.4f}")
-    if baseline_simulated_mortality is not None:
-        print(f"Simulated Mortality Using Baseline Treatments: {baseline_simulated_mortality:.4f}")
-    print(f"Total improvement (init->final):   "
-          f"{initial_mortality - mortality_predicted.item():+.4f} "
-          f"({(initial_mortality - mortality_predicted.item()) / max(initial_mortality, 1e-8) * 100:+.1f}%)")
-    print(f"Per-step rewards:                  {rewards_total.round(4)}")
-    print(f"Total reward:                      {rewards_total.sum():.4f}")
+        print(f"\nTreatment comparison (mean scaled values over CEM horizon):")
+        print(f"  {'Variable':25s} {'Actual':>10} {'CEM':>10} {'Abs Diff':>10}")
+        print(f"  {'-'*55}")
+        for name, orig, cem_val, diff in zip(
+                CEM_TREATMENT_NAMES,orig_means_per_step.mean(axis=0), cem_means_per_step.mean(axis=0), avg_per_var_diff):
+            print(f"  {name:25s} {orig:10.4f} {cem_val:10.4f} {diff:10.4f}")
+        print(f"  {'-'*55}")
+        print(f"  {'Overall diff metric':25s} {'':>10} {'':>10} "
+            f"{avg_per_var_diff.mean():10.4f}")
+        print(f"{'='*60}\n")
+    return {
+    'patient_id':          data['pid'],
+    'initial_mortality':   initial_mortality,
+    'cem_mortality':       mortality_predicted.item() if mortality_predicted is not None else None,
+    'baseline_mortality':  baseline_simulated_mortality,
+    'actual_mortality':    actual_final_mortality,
+    'improvement':         baseline_simulated_mortality - mortality_predicted.item()
+                            if mortality_predicted is not None else None,
+    'sofa_initial_real':      sofa_before_first,
+    'sofa_final_predicted':   sofa_predicted_last,
+    'sofa_improvement':       (sofa_before_first - sofa_predicted_last)
+                            if sofa_before_first is not None and sofa_predicted_last is not None
+                            else None,
+    'baseline_sofa':          baseline_simulated_sofa, #sofa of simulation of actual treatments
+    'sofa_improvement_vs_baseline': (baseline_simulated_sofa - sofa_predicted_last)
+                                 if sofa_predicted_last is not None else None,
+    'cem_means':      cem_means_per_step,
+    'orig_means':     orig_means_per_step,
+    'treatment_diff': avg_per_var_diff,
+    'total_reward':        rewards_total.sum(),
+    'steps_executed':      steps_executed,
+}
 
-    print(f"\nTreatment comparison (mean scaled values over CEM horizon):")
-    print(f"  {'Variable':25s} {'Actual':>10} {'CEM':>10} {'Abs Diff':>10}")
-    print(f"  {'-'*55}")
-    for name, orig, cem_val, diff in zip(
-            CEM_TREATMENT_NAMES, orig_means, cem_means, avg_per_var_diff):
-        print(f"  {name:25s} {orig:10.4f} {cem_val:10.4f} {diff:10.4f}")
-    print(f"  {'-'*55}")
-    print(f"  {'Overall diff metric':25s} {'':>10} {'':>10} "
-          f"{avg_per_var_diff.mean():10.4f}")
-    print(f"{'='*60}\n")
+def run_cem_evaluation(n_patients, classifier, predictor,
+                       predictor_config, device, config_tag='default', split = 'test'):
+    """Run CEM over multiple patients and aggregate stats."""
+    f = h5py.File(config.CEM_DATASET, 'r')
+    n_available = f['windows'][split].shape[0]
+    f.close()
+    patient_indices = list(range(min(n_patients, n_available)))
+    all_results = []
+    for i, patient_i in enumerate(patient_indices):
+        print(f"\n[{i+1}/{len(patient_indices)}] Running CEM for patient index {patient_i}")
+        try:
+            result = cem(patient_i, classifier, predictor, predictor_config, device, verbose=False)
+            result['config_tag'] = config_tag
+            all_results.append(result)
+        except Exception as e:
+            print(f"  Skipped patient {patient_i}: {e}")
+
+    return {
+        'config_tag':    config_tag,
+        'n_patients':    len(all_results),
+        'results':       all_results,
+        # Aggregated arrays for easy plotting
+        'improvement':         np.array([r['improvement']      for r in all_results if r['improvement']      is not None]),
+        'cem_mortality':       np.array([r['cem_mortality']     for r in all_results if r['cem_mortality']     is not None]),
+        'baseline_mortality':  np.array([r['baseline_mortality']for r in all_results if r['baseline_mortality']is not None]),
+        'actual_mortality':    np.array([r['actual_mortality']  for r in all_results if r['actual_mortality']  is not None]),
+        'sofa_improvement':    np.array([r['sofa_improvement']  for r in all_results if r['sofa_improvement']  is not None]),
+        'cem_means':           np.array([r['cem_means']         for r in all_results]),  # (n, n_cem_vars)
+        'orig_means':          np.array([r['orig_means']        for r in all_results]),
+        'treatment_diff':      np.array([r['treatment_diff']    for r in all_results]),
+        'total_reward':        np.array([r['total_reward']      for r in all_results]),
+    }
+
+def save_evaluation(eval_results, path):
+    # Convert numpy arrays to lists for JSON serialization
+    serializable = {k: v.tolist() if isinstance(v, np.ndarray) else v
+                    for k, v in eval_results.items()
+                    if k != 'results'}  # skip per-patient dicts for now
+    serializable['results'] = [
+        {k: v.tolist() if isinstance(v, np.ndarray) else v
+         for k, v in r.items()}
+        for r in eval_results['results']
+    ]
+    with open(path, 'w') as f:
+        json.dump(serializable, f, indent=2)
+
+def load_evaluation(path):
+    with open(path) as f:
+        data = json.load(f)
+    # Convert lists back to numpy arrays
+    array_keys = ['improvement', 'cem_mortality', 'baseline_mortality',
+                  'actual_mortality', 'sofa_improvement', 'cem_means',
+                  'orig_means', 'treatment_diff', 'total_reward']
+    for k in array_keys:
+        if k in data:
+            data[k] = np.array(data[k])
+    return data
     
 if __name__ == '__main__':
 

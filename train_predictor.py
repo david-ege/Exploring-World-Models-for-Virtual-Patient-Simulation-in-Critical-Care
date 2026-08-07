@@ -73,19 +73,17 @@ def train(override_cfg={}):
     checkpoint_name = f"gru_ctx{context_steps}_tgt{target_steps}_h{hidden_dim}_l{num_layers}_{date_str}.pt"
 
     train_dataset = HiRIDDataset(config.DATA_PATH, 'train', context_steps, target_steps,
-                                 measurement_subset=config.MEASUREMENT_SUBSET,
-                                 treatment_subset=config.TREATMENT_SUBSET, use_delta_t=config.PRED_USE_DELTA_T, include_prev_window=config.PRED_SCHEDULED_SAMPLING_ENABLED)
+                                 use_delta_t=config.PRED_USE_DELTA_T, include_prev_window=config.PRED_SCHEDULED_SAMPLING_ENABLED)
     val_dataset   = HiRIDDataset(config.DATA_PATH, 'val',   context_steps, target_steps,
-                                 measurement_subset=config.MEASUREMENT_SUBSET,
-                                 treatment_subset=config.TREATMENT_SUBSET, use_delta_t=config.PRED_USE_DELTA_T, include_prev_window=config.PRED_SCHEDULED_SAMPLING_ENABLED)
+                                 use_delta_t=config.PRED_USE_DELTA_T, include_prev_window=config.PRED_SCHEDULED_SAMPLING_ENABLED)
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True,
                               num_workers=4, pin_memory=True)
     val_loader   = DataLoader(val_dataset,   batch_size=batch_size, shuffle=False,
                               num_workers=4, pin_memory=True)
 
-    n_measurements = len(config.MEASUREMENT_SUBSET) if config.MEASUREMENT_SUBSET else N_MEASUREMENTS
-    n_treatments   = len(config.TREATMENT_SUBSET)   if config.TREATMENT_SUBSET   else N_TREATMENTS
+    n_measurements = N_MEASUREMENTS
+    n_treatments   = N_TREATMENTS
 
     model = GRUPredictor(
         hidden_dim=hidden_dim,
@@ -130,20 +128,29 @@ def train(override_cfg={}):
                 epsilon  = scheduled_sampling_epsilon(epoch, num_epochs,
                             config.PRED_SCHEDULED_SAMPLING_MIN_REAL,
                             k=config.PRED_SCHEDULED_SAMPLING_K)
-                has_prev = batch['has_prev'].to(device)
-                use_pred = (torch.rand(measurements.shape[0]).to(device) > epsilon) & has_prev
+                has_prev = batch['has_prev']
+                use_pred = (torch.rand(measurements.shape[0]) > epsilon) & has_prev
+                idx = use_pred.nonzero(as_tuple=True)[0]
 
-                if use_pred.any():
+                if idx.numel() > 0:
+                    idx_gpu = idx.to(device)
                     with torch.no_grad():
-                        prev_pred_all = model(
-                            batch['prev_measurements'].to(device),
-                            batch['prev_treatments'].to(device),
-                            batch['prev_datetime'].to(device),
-                            demographics,
-                            batch['prev_context_mask'].to(device) if config.PRED_USE_CONTEXT_MASK else None,
+                        prev_pred = model(
+                            batch['prev_measurements'][idx].to(device),
+                            batch['prev_treatments'][idx].to(device),
+                            batch['prev_datetime'][idx].to(device),
+                            demographics[idx_gpu],
+                            batch['prev_context_mask'][idx].to(device) if config.PRED_USE_CONTEXT_MASK else None,
                             None)
-                    measurements[use_pred]       = prev_pred_all[use_pred]
-                    context_mask_batch[use_pred] = 1.0
+                    if context_steps > target_steps:
+                        measurements[idx_gpu, -target_steps:, :]    = prev_pred
+                        context_mask_batch[idx_gpu, -target_steps:] = 1.0
+                    elif context_steps == target_steps:
+                        measurements[idx_gpu]       = prev_pred
+                        context_mask_batch[idx_gpu] = 1.0
+                    else:
+                        measurements[idx_gpu]       = prev_pred[:, -context_steps:, :]
+                        context_mask_batch[idx_gpu] = 1.0
 
             optimizer.zero_grad()
             pred = model(measurements, treatments, datetime, demographics,context_mask_batch if config.PRED_USE_CONTEXT_MASK else None,batch['delta_t'].to(device) if config.PRED_USE_DELTA_T else None)
@@ -193,11 +200,12 @@ def train(override_cfg={}):
                     'num_layers':         num_layers,
                     'dropout':            dropout,
                     'target_steps':       target_steps,
+                    'context_steps':      context_steps,
                     'encoder_dim':        config.PRED_ENCODER_DIM,
                     'n_measurements':     n_measurements,
                     'n_treatments':       n_treatments,
-                    'measurement_subset': config.MEASUREMENT_SUBSET,
-                    'treatment_subset':   config.TREATMENT_SUBSET,
+                    'measurement_subset': None,
+                    'treatment_subset':   None,
                     'weight_decay': weight_decay,
                     'uses_context_mask': config.PRED_USE_CONTEXT_MASK,
                     'uses_delta_t':      config.PRED_USE_DELTA_T,

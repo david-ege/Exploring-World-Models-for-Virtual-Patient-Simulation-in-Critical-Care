@@ -17,12 +17,8 @@ def get_checkpoint_path(checkpoint = BEST_CHECKPOINT):
 
 # Shared Settings -------------------------------------------------------------------------------
 # Data
-CONTEXT_STEPS = 36                  # 3 hours of context
-TARGET_STEPS = CONTEXT_STEPS        # Need to match context steps for predictor training and rollout
-
-# Variable subset — set to None to use all variables
-MEASUREMENT_SUBSET = None   # e.g. INFORMATIVE_MEASUREMENT_IDX
-TREATMENT_SUBSET   = None   # e.g. INFORMATIVE_TREATMENT_IDX
+CONTEXT_STEPS = 144                  #prev 36, 3 hours of context
+TARGET_STEPS = 36             #CONTEXT_STEPS Need to match context steps for predictor training and rollout
 
 #Predictor Settings -------------------------------------------------------------------------------
 # Model
@@ -77,8 +73,8 @@ CEM_ELITE_FRAC = .1
 CEM_INIT_STDEV = 1.0
 CEM_EXTRA_STDEV  = 0.5
 CEM_STDEV_DECAY_TIME = 25
-CEM_GAMMA_TREATMENT_SIZE = 0.0
-CEM_GAMMA_SOFA = 1
+CEM_GAMMA_TREATMENT_SIZE = 0.02 #before: 0.04 ,0.08, 0.00
+CEM_GAMMA_SOFA = 1.0
 CEM_NO_TREAT_OPTION_ENABLED = True
 
 # Device
