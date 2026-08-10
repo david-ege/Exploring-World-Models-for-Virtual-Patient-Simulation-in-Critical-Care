@@ -50,6 +50,15 @@ def scheduled_sampling_epsilon(epoch, num_epochs, min_real, k=10):
     scaled   = (raw - raw_end) / (raw_0 - raw_end)
     return min_real + (1.0 - min_real) * scaled
 
+def teacher_forcing_prob(epoch, num_epochs, min_prob, k=15):
+    #same as scheduled sampling, different method for readability and in case i want to make changes to one not the other
+    exponent = min(epoch / k, 500)
+    raw      = k / (k + np.exp(exponent))
+    raw_0    = k / (k + np.exp(0.0))
+    raw_end  = k / (k + np.exp(num_epochs / k))
+    scaled   = (raw - raw_end) / (raw_0 - raw_end)
+    return min_prob + (1.0 - min_prob) * scaled
+
 def train(override_cfg={}):
     args = parse_args()
 
@@ -90,7 +99,6 @@ def train(override_cfg={}):
         num_layers=num_layers,
         dropout=dropout,
         target_steps=target_steps,
-        encoder_dim=config.PRED_ENCODER_DIM,
         n_measurements=n_measurements,
         n_treatments=n_treatments,
         use_context_mask=config.PRED_USE_CONTEXT_MASK,
@@ -113,6 +121,7 @@ def train(override_cfg={}):
         epoch_start = time.time()
         model.train()
         train_loss = 0.0
+        tf_prob = teacher_forcing_prob(epoch, num_epochs, config.PRED_SCHEDULED_SAMPLING_MIN_REAL, k=config.PRED_SCHEDULED_SAMPLING_K)
         prev_pred = None  # Reset previous prediction at the start of each epoch
 
         for batch in train_loader:
@@ -120,6 +129,8 @@ def train(override_cfg={}):
             treatments   = batch['treatments'].to(device)
             datetime     = batch['datetime'].to(device)
             demographics = batch['demographics'].to(device)
+            future_treatments = batch['future_treatments'].to(device)   # needed for autoregressive prediction
+            future_datetime   = batch['future_datetime'].to(device)     # needed for autoregressive prediction
             target       = batch['target'].to(device)
             target_mask  = batch['target_mask'].to(device)
             context_mask_batch = batch['context_mask'].to(device)
@@ -134,14 +145,19 @@ def train(override_cfg={}):
 
                 if idx.numel() > 0:
                     idx_gpu = idx.to(device)
+                    prev_future_treatments = treatments[idx_gpu, -target_steps:, :]
+                    prev_future_datetime   = datetime[idx_gpu, -target_steps:]
                     with torch.no_grad():
                         prev_pred = model(
-                            batch['prev_measurements'][idx].to(device),
-                            batch['prev_treatments'][idx].to(device),
-                            batch['prev_datetime'][idx].to(device),
-                            demographics[idx_gpu],
-                            batch['prev_context_mask'][idx].to(device) if config.PRED_USE_CONTEXT_MASK else None,
-                            None)
+                            measurements=batch['prev_measurements'][idx].to(device),
+                            treatments=batch['prev_treatments'][idx].to(device),
+                            datetime=batch['prev_datetime'][idx].to(device),
+                            demographics=demographics[idx_gpu],
+                            future_treatments=prev_future_treatments,
+                            future_datetime=prev_future_datetime,
+                            context_mask=batch['prev_context_mask'][idx].to(device) if config.PRED_USE_CONTEXT_MASK else None,
+                            delta_t=None,
+                        )
                     if context_steps > target_steps:
                         measurements[idx_gpu, -target_steps:, :]    = prev_pred
                         context_mask_batch[idx_gpu, -target_steps:] = 1.0
@@ -153,7 +169,7 @@ def train(override_cfg={}):
                         context_mask_batch[idx_gpu] = 1.0
 
             optimizer.zero_grad()
-            pred = model(measurements, treatments, datetime, demographics,context_mask_batch if config.PRED_USE_CONTEXT_MASK else None,batch['delta_t'].to(device) if config.PRED_USE_DELTA_T else None)
+            pred = model(measurements, treatments, datetime, demographics, future_treatments=future_treatments, future_datetime=future_datetime , context_mask=context_mask_batch if config.PRED_USE_CONTEXT_MASK else None, delta_t =batch['delta_t'].to(device) if config.PRED_USE_DELTA_T else None, future_targets = target, teacher_forcing_prob=tf_prob)
             loss = masked_mse(pred, target, target_mask)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), config.PRED_GRAD_CLIP)
@@ -171,10 +187,19 @@ def train(override_cfg={}):
                 treatments   = batch['treatments'].to(device)
                 datetime     = batch['datetime'].to(device)
                 demographics = batch['demographics'].to(device)
+                future_treatments = batch['future_treatments'].to(device)
+                future_datetime   = batch['future_datetime'].to(device)
                 target       = batch['target'].to(device)
                 target_mask  = batch['target_mask'].to(device)
 
-                pred = model(measurements, treatments, datetime, demographics,batch['context_mask'].to(device) if config.PRED_USE_CONTEXT_MASK else None,batch['delta_t'].to(device) if config.PRED_USE_DELTA_T else None)
+
+                pred = model(
+                    measurements=measurements, treatments=treatments, datetime=datetime,
+                    demographics=demographics,
+                    future_treatments=future_treatments, future_datetime=future_datetime,
+                    context_mask=batch['context_mask'].to(device) if config.PRED_USE_CONTEXT_MASK else None,
+                    delta_t=batch['delta_t'].to(device) if config.PRED_USE_DELTA_T else None,)
+
                 val_loss += masked_mse(pred, target, target_mask).item()
 
         val_loss /= len(val_loader)

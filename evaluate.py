@@ -59,7 +59,7 @@ def evaluate(checkpoint_name=None, results_dir=None):
 
     test_dataset = HiRIDDataset(
         config.DATA_PATH, 'test',
-        config.CONTEXT_STEPS, cfg['target_steps'],
+        cfg['context_steps'], cfg['target_steps'],
     )
     test_loader = DataLoader(test_dataset, batch_size=config.PRED_BATCH_SIZE,
                              shuffle=False, num_workers=4)
@@ -71,7 +71,6 @@ def evaluate(checkpoint_name=None, results_dir=None):
         num_layers=cfg['num_layers'],
         dropout=cfg['dropout'],
         target_steps=cfg['target_steps'],
-        encoder_dim=cfg['encoder_dim'],
         n_measurements=cfg['n_measurements'],
         n_treatments=cfg['n_treatments'],
         use_context_mask=use_context_mask,
@@ -88,13 +87,21 @@ def evaluate(checkpoint_name=None, results_dir=None):
             treatments   = batch['treatments'].to(device)
             datetime     = batch['datetime'].to(device)
             demographics = batch['demographics'].to(device)
+            future_treatments = batch['future_treatments'].to(device)
+            future_datetime   = batch['future_datetime'].to(device)
             target       = batch['target'].to(device)
             target_mask  = batch['target_mask'].to(device)
             context_mask = batch['context_mask'].to(device)
             delta_t      = batch['delta_t'].to(device)
 
-            pred = model(measurements, treatments, datetime, demographics,context_mask if use_context_mask else None,delta_t if use_delta_t else None)
-            
+            pred = model(
+                measurements=measurements, treatments=treatments, datetime=datetime,
+                demographics=demographics,
+                future_treatments=future_treatments, future_datetime=future_datetime,
+                context_mask=context_mask if use_context_mask else None,
+                delta_t=delta_t if use_delta_t else None,
+            )
+
             last_step = measurements[:, -1:, :].repeat(1, cfg['target_steps'], 1)
             all_preds.append(pred.cpu().numpy())
             all_targets.append(target.cpu().numpy())

@@ -17,7 +17,7 @@ def get_checkpoint_path(checkpoint = BEST_CHECKPOINT):
 
 # Shared Settings -------------------------------------------------------------------------------
 # Data
-CONTEXT_STEPS = 144                  #prev 36, 3 hours of context
+CONTEXT_STEPS = 72                  #prev 64, 36, 3 hours of context
 TARGET_STEPS = 36             #CONTEXT_STEPS Need to match context steps for predictor training and rollout
 
 #Predictor Settings -------------------------------------------------------------------------------
@@ -32,9 +32,9 @@ PRED_USE_CONTEXT_MASK = True  # concatenate binary observation mask to GRU input
 PRED_USE_DELTA_T      = False  # concatenate scaled time-since-last-observation to GRU input
 
 # Training
-PRED_LEARNING_RATE = 5e-5 #peviously 1e-4
+PRED_LEARNING_RATE = 1e-4 #peviously 5e-5 1e-4
 PRED_WEIGHT_DECAY = 1e-4
-PRED_BATCH_SIZE = 64
+PRED_BATCH_SIZE = 64 
 PRED_NUM_EPOCHS = 30
 PRED_GRAD_CLIP = 1.0
 PRED_PATIENCE = 15

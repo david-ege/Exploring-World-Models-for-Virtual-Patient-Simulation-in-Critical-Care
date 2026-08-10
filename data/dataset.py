@@ -86,6 +86,8 @@ class HiRIDDataset(Dataset):
             'delta_t':      torch.tensor(delta_t,                       dtype=torch.float32),
             'target':       torch.tensor(target[:, m_cols],             dtype=torch.float32),
             'target_mask':  torch.tensor(target_mask[:, m_cols],        dtype=torch.float32),
+            'future_treatments': torch.tensor(target[:, t_cols],       dtype=torch.float32),
+            'future_datetime':   torch.tensor(target[:, DATETIME_IDX], dtype=torch.float32),
         }
         if self.include_prev_window:
         # Find the start of this patient's stay
