@@ -68,6 +68,7 @@ class HiRIDDataset(Dataset):
         t_cols = [TREATMENT_IDX[i]   for i in self.t_idx]
 
         context_mask_m = context_mask[:, m_cols]
+        context_mask_t = context_mask[:, t_cols]
 
         if self.use_delta_t:
             if self.delta_t_full is not None:
@@ -83,6 +84,7 @@ class HiRIDDataset(Dataset):
             'treatments':   torch.tensor(context[:, t_cols],            dtype=torch.float32),
             'datetime':     torch.tensor(context[:, DATETIME_IDX],      dtype=torch.float32),
             'context_mask': torch.tensor(context_mask_m,                dtype=torch.float32),
+            'treatment_mask' : torch.tensor(context_mask_t,             dtype=torch.float32),
             'delta_t':      torch.tensor(delta_t,                       dtype=torch.float32),
             'target':       torch.tensor(target[:, m_cols],             dtype=torch.float32),
             'target_mask':  torch.tensor(target_mask[:, m_cols],        dtype=torch.float32),
@@ -104,6 +106,8 @@ class HiRIDDataset(Dataset):
                     prev_context[:, m_cols], dtype=torch.float32)
                 out['prev_context_mask'] = torch.tensor(
                     prev_context_mask[:, m_cols], dtype=torch.float32)
+                out['prev_treatment_mask'] = torch.tensor(
+                    prev_context_mask[:, t_cols], dtype=torch.float32)
                 out['prev_treatments']   = torch.tensor(
                     prev_context[:, t_cols], dtype=torch.float32)
                 out['prev_datetime']     = torch.tensor(
@@ -113,6 +117,7 @@ class HiRIDDataset(Dataset):
                 # First window of stay — no previous window available
                 out['prev_measurements'] = torch.zeros_like(out['measurements'])
                 out['prev_context_mask'] = torch.zeros_like(out['context_mask'])
+                out['prev_treatment_mask'] = torch.zeros_like(out['treatments'])
                 out['prev_treatments']   = torch.zeros_like(out['treatments'])
                 out['prev_datetime']     = torch.zeros_like(out['datetime'])
                 out['has_prev']          = torch.tensor(False)

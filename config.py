@@ -29,6 +29,7 @@ PRED_DROPOUT = 0.3
 
 # Input flags
 PRED_USE_CONTEXT_MASK = True  # concatenate binary observation mask to GRU input
+PRED_USE_TREATMENT_MASK = True
 PRED_USE_DELTA_T      = False  # concatenate scaled time-since-last-observation to GRU input
 
 # Training

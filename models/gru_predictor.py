@@ -6,15 +6,16 @@ from data.constants import N_DEMOGRAPHICS
 class GRUPredictor(nn.Module):
     def __init__(self, hidden_dim=256, num_layers=2, dropout=0.1,
                  target_steps=12, n_measurements=None, n_treatments=None,
-                 use_context_mask=False, use_delta_t=False):
+                 use_context_mask=False, use_treatment_mask=False, use_delta_t=False):
         super().__init__()
         self.hidden_dim, self.num_layers = hidden_dim, num_layers
         self.target_steps = target_steps
         self.n_measurements = n_measurements
-        self.use_context_mask, self.use_delta_t = use_context_mask, use_delta_t
+        self.use_context_mask, self.use_treatment_mask, self.use_delta_t = use_context_mask, use_treatment_mask, use_delta_t
 
         enc_dim = n_measurements + n_treatments + 1
         if use_context_mask: enc_dim += n_measurements
+        if use_treatment_mask: enc_dim += n_treatments
         if use_delta_t:      enc_dim += n_measurements
 
         self.encoder = nn.GRU(enc_dim, hidden_dim, num_layers, batch_first=True,
@@ -30,12 +31,13 @@ class GRUPredictor(nn.Module):
 
     def forward(self, measurements, treatments, datetime, demographics,
                 future_treatments, future_datetime,
-                context_mask=None, delta_t=None,
+                context_mask=None, treatment_mask=None, delta_t=None,
                 future_targets=None, teacher_forcing_prob=0.0):
         B = measurements.shape[0]
 
         parts = [measurements, treatments, datetime]
         if self.use_context_mask: parts.append(context_mask)
+        if self.use_treatment_mask: parts.append(treatment_mask)
         if self.use_delta_t:      parts.append(delta_t)
         x = torch.cat(parts, dim=-1)
         h0 = self.demo_proj(demographics).unsqueeze(0).repeat(self.num_layers, 1, 1)

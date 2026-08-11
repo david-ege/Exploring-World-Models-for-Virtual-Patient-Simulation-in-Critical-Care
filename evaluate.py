@@ -42,29 +42,28 @@ def evaluate(checkpoint_name=None, results_dir=None):
     else:
         print("Warning: old checkpoint format, using config.py values")
         state_dict = checkpoint
-        n_m =  N_MEASUREMENTS
-        n_t = N_TREATMENTS
         cfg = {
             'hidden_dim':         config.PRED_HIDDEN_DIM,
             'num_layers':         config.PRED_NUM_LAYERS,
             'dropout':            config.PRED_DROPOUT,
             'target_steps':       config.TARGET_STEPS,
             'encoder_dim':        config.PRED_ENCODER_DIM,
-            'n_measurements':     n_m,
-            'n_treatments':       n_t,
+            'n_measurements':     N_MEASUREMENTS,
+            'n_treatments':       N_TREATMENTS,
             'measurement_subset': None,
             'treatment_subset':   None,
-
         }
 
     test_dataset = HiRIDDataset(
         config.DATA_PATH, 'test',
-        cfg['context_steps'], cfg['target_steps'],
-    )
+        cfg.get('context_steps', config.CONTEXT_STEPS),
+        cfg['target_steps'],
+        cfg.get('uses_delta_t', False))
     test_loader = DataLoader(test_dataset, batch_size=config.PRED_BATCH_SIZE,
                              shuffle=False, num_workers=4)
 
     use_context_mask = cfg.get('uses_context_mask', False)
+    use_treatment_mask = cfg.get('uses_treatment_mask', False)
     use_delta_t      = cfg.get('uses_delta_t', False)
     model = GRUPredictor(
         hidden_dim=cfg['hidden_dim'],
@@ -74,6 +73,7 @@ def evaluate(checkpoint_name=None, results_dir=None):
         n_measurements=cfg['n_measurements'],
         n_treatments=cfg['n_treatments'],
         use_context_mask=use_context_mask,
+        use_treatment_mask=use_treatment_mask,
         use_delta_t=use_delta_t
     ).to(device)
     model.load_state_dict(state_dict)
@@ -92,6 +92,7 @@ def evaluate(checkpoint_name=None, results_dir=None):
             target       = batch['target'].to(device)
             target_mask  = batch['target_mask'].to(device)
             context_mask = batch['context_mask'].to(device)
+            treatment_mask = batch['treatment_mask'].to(device)
             delta_t      = batch['delta_t'].to(device)
 
             pred = model(
@@ -99,6 +100,7 @@ def evaluate(checkpoint_name=None, results_dir=None):
                 demographics=demographics,
                 future_treatments=future_treatments, future_datetime=future_datetime,
                 context_mask=context_mask if use_context_mask else None,
+                treatment_mask=treatment_mask if use_treatment_mask else None,
                 delta_t=delta_t if use_delta_t else None,
             )
 
