@@ -111,7 +111,10 @@ def train(override_cfg={}):
 
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
                                  weight_decay=weight_decay)
-    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=get_lr)
+    warmup_epochs = 5
+    warmup_scheduler  = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=get_lr)
+    plateau_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode='min', factor=0.5, patience=4, min_lr=1e-5)
 
     best_val_loss             = float('inf')
     epochs_without_improvement = 0
@@ -203,7 +206,10 @@ def train(override_cfg={}):
                 val_loss += masked_mse(pred, target, target_mask).item()
 
         val_loss /= len(val_loader)
-        scheduler.step()
+        if epoch < warmup_epochs:
+            warmup_scheduler.step()
+        else:
+            plateau_scheduler.step(val_loss)
         epoch_time = time.time() - epoch_start
         remaining  = (num_epochs - epoch - 1) * epoch_time
 

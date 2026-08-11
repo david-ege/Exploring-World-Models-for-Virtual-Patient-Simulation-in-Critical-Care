@@ -35,13 +35,13 @@ PRED_USE_DELTA_T      = False  # concatenate scaled time-since-last-observation 
 PRED_LEARNING_RATE = 1e-4 #peviously 5e-5 1e-4
 PRED_WEIGHT_DECAY = 1e-4
 PRED_BATCH_SIZE = 64 
-PRED_NUM_EPOCHS = 30
+PRED_NUM_EPOCHS = 50
 PRED_GRAD_CLIP = 1.0
-PRED_PATIENCE = 15
+PRED_PATIENCE = 10
 
 # inverse sigmoid decay
 PRED_SCHEDULED_SAMPLING_K = 15
-PRED_SCHEDULED_SAMPLING_ENABLED = True
+PRED_SCHEDULED_SAMPLING_ENABLED = False # Just to reduce runtime, set to true later
 PRED_SCHEDULED_SAMPLING_MIN_REAL = 0.5
 
 
