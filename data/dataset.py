@@ -24,19 +24,21 @@ def compute_delta_t(mask_window):
 
 class HiRIDDataset(Dataset):
     def __init__(self, h5_path, split, context_steps=36, target_steps=12,
-                use_delta_t = True, include_prev_window=False):
+                use_delta_t = True, include_prev_window=False, include_pat_summary=False):
         self.context_steps = context_steps
         self.target_steps  = target_steps
         self.m_idx =  list(range(len(MEASUREMENT_IDX)))
         self.t_idx =  list(range(len(TREATMENT_IDX)))
         self.use_delta_t = use_delta_t
         self.include_prev_window = include_prev_window
+        self.include_pat_summary = include_pat_summary
 
         f = h5py.File(h5_path, 'r')
         self.data    = f['data'][split][:]
         self.windows = f['windows'][split][:]
         self.mask    = f['mask'][split][:] if 'mask' in f else np.ones_like(self.data)
         self.delta_t_full = f['delta_t'][split][:] if ('delta_t' in f and use_delta_t) else None
+        self.pat_summary_full = f['pat_summary'][split][:] if ('pat_summary' in f and include_pat_summary) else None
         f.close()
 
         self.samples = []
@@ -91,6 +93,12 @@ class HiRIDDataset(Dataset):
             'future_treatments': torch.tensor(target[:, t_cols],       dtype=torch.float32),
             'future_datetime':   torch.tensor(target[:, DATETIME_IDX], dtype=torch.float32),
         }
+
+        if self.include_pat_summary:
+            #get patient summary from before timestep
+            #for every feature (meas, treat) get mean, std, observation rate
+            out['pat_summary'] = torch.tensor(self.pat_summary_full[t], dtype=torch.float32)
+
         if self.include_prev_window:
         # Find the start of this patient's stay
         # t is an absolute row index, need to find the patient's start
@@ -113,6 +121,8 @@ class HiRIDDataset(Dataset):
                 out['prev_datetime']     = torch.tensor(
                     prev_context[:, DATETIME_IDX], dtype=torch.float32)
                 out['has_prev']          = torch.tensor(True)
+                if self.include_pat_summary:
+                    out['prev_summary'] = torch.tensor(self.pat_summary_full[t_prev], dtype=torch.float32)
             else:
                 # First window of stay — no previous window available
                 out['prev_measurements'] = torch.zeros_like(out['measurements'])
@@ -121,5 +131,7 @@ class HiRIDDataset(Dataset):
                 out['prev_treatments']   = torch.zeros_like(out['treatments'])
                 out['prev_datetime']     = torch.zeros_like(out['datetime'])
                 out['has_prev']          = torch.tensor(False)
+                if self.include_pat_summary:
+                    out['prev_summary']      = torch.zeros_like(out['pat_summary'])
 
         return out

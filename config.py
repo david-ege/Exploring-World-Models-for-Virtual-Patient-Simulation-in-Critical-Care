@@ -10,7 +10,7 @@ RESULTS_DIR = '/home/bbe9928/thesis_work/hirid_jepa/results'
 DATA_PATH = CARDIOVASCULAR_DATA_PATH
 
 #Checkpoints
-BEST_CHECKPOINT = 'gru_ctx36_tgt36_h256_l2_07_07_22-35.pt' #'gru_ctx36_tgt36_h256_l1_08_06_15-44.pt' #model checkpoint used for mortality classifier
+BEST_CHECKPOINT = 'gru_ctx72_tgt36_h256_l2_11_08_13-04.pt'  #'gru_ctx36_tgt36_h256_l2_07_07_22-35.pt' #'gru_ctx36_tgt36_h256_l1_08_06_15-44.pt' #model checkpoint used for mortality classifier
 BEST_CLASSIFIER_CHECKPOINT = 'gru_classifier_h64_do0.2_real_and_predicted_data_08_07_11-36.pt'#'lr_predicted_classifier.pkl'  #used by world model / rl / cem
 def get_checkpoint_path(checkpoint = BEST_CHECKPOINT):
     return f"{CHECKPOINT_DIR}/{checkpoint}"
@@ -31,6 +31,7 @@ PRED_DROPOUT = 0.3
 PRED_USE_CONTEXT_MASK = True  # concatenate binary observation mask to GRU input
 PRED_USE_TREATMENT_MASK = True
 PRED_USE_DELTA_T      = False  # concatenate scaled time-since-last-observation to GRU input
+PRED_USE_PAT_SUMMARY = False
 
 # Training
 PRED_LEARNING_RATE = 1e-4 #peviously 5e-5 1e-4
@@ -42,7 +43,7 @@ PRED_PATIENCE = 10
 
 # inverse sigmoid decay
 PRED_SCHEDULED_SAMPLING_K = 15
-PRED_SCHEDULED_SAMPLING_ENABLED = False # Just to reduce runtime, set to true later
+PRED_SCHEDULED_SAMPLING_ENABLED = True # Just to reduce runtime, set to true later
 PRED_SCHEDULED_SAMPLING_MIN_REAL = 0.5
 
 

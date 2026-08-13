@@ -52,19 +52,23 @@ def evaluate(checkpoint_name=None, results_dir=None):
             'n_treatments':       N_TREATMENTS,
             'measurement_subset': None,
             'treatment_subset':   None,
+            'uses_pat_summary':   config.PRED_USE_PAT_SUMMARY,
         }
 
     test_dataset = HiRIDDataset(
         config.DATA_PATH, 'test',
-        cfg.get('context_steps', config.CONTEXT_STEPS),
-        cfg['target_steps'],
-        cfg.get('uses_delta_t', False))
+        context_steps=cfg.get('context_steps', config.CONTEXT_STEPS),
+        target_steps=cfg['target_steps'],
+        use_delta_t=cfg.get('uses_delta_t', False),
+        include_prev_window=False,
+        include_pat_summary=cfg.get('uses_pat_summary', False),)
     test_loader = DataLoader(test_dataset, batch_size=config.PRED_BATCH_SIZE,
                              shuffle=False, num_workers=4)
 
     use_context_mask = cfg.get('uses_context_mask', False)
     use_treatment_mask = cfg.get('uses_treatment_mask', False)
     use_delta_t      = cfg.get('uses_delta_t', False)
+    use_pat_summary = cfg.get('uses_pat_summary', False)
     model = GRUPredictor(
         hidden_dim=cfg['hidden_dim'],
         num_layers=cfg['num_layers'],
@@ -74,7 +78,8 @@ def evaluate(checkpoint_name=None, results_dir=None):
         n_treatments=cfg['n_treatments'],
         use_context_mask=use_context_mask,
         use_treatment_mask=use_treatment_mask,
-        use_delta_t=use_delta_t
+        use_delta_t=use_delta_t,
+        use_pat_summary=use_pat_summary
     ).to(device)
     model.load_state_dict(state_dict)
     model.eval()
@@ -101,6 +106,7 @@ def evaluate(checkpoint_name=None, results_dir=None):
                 future_treatments=future_treatments, future_datetime=future_datetime,
                 context_mask=context_mask if use_context_mask else None,
                 treatment_mask=treatment_mask if use_treatment_mask else None,
+                pat_summary = batch['pat_summary'].to(device) if use_pat_summary  else None,
                 delta_t=delta_t if use_delta_t else None,
             )
 

@@ -82,9 +82,9 @@ def train(override_cfg={}):
     checkpoint_name = f"gru_ctx{context_steps}_tgt{target_steps}_h{hidden_dim}_l{num_layers}_{date_str}.pt"
 
     train_dataset = HiRIDDataset(config.DATA_PATH, 'train', context_steps, target_steps,
-                                 use_delta_t=config.PRED_USE_DELTA_T, include_prev_window=config.PRED_SCHEDULED_SAMPLING_ENABLED)
+                                 use_delta_t=config.PRED_USE_DELTA_T, include_prev_window=config.PRED_SCHEDULED_SAMPLING_ENABLED, include_pat_summary=config.PRED_USE_PAT_SUMMARY)
     val_dataset   = HiRIDDataset(config.DATA_PATH, 'val',   context_steps, target_steps,
-                                 use_delta_t=config.PRED_USE_DELTA_T, include_prev_window=config.PRED_SCHEDULED_SAMPLING_ENABLED)
+                                 use_delta_t=config.PRED_USE_DELTA_T, include_prev_window=config.PRED_SCHEDULED_SAMPLING_ENABLED, include_pat_summary=config.PRED_USE_PAT_SUMMARY)
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True,
                               num_workers=4, pin_memory=True)
@@ -103,7 +103,8 @@ def train(override_cfg={}):
         n_treatments=n_treatments,
         use_context_mask=config.PRED_USE_CONTEXT_MASK,
         use_treatment_mask=config.PRED_USE_TREATMENT_MASK,
-        use_delta_t=config.PRED_USE_DELTA_T
+        use_delta_t=config.PRED_USE_DELTA_T,
+        use_pat_summary=config.PRED_USE_PAT_SUMMARY
     ).to(device)
 
 
@@ -162,6 +163,7 @@ def train(override_cfg={}):
                             future_datetime=prev_future_datetime,
                             context_mask=batch['prev_context_mask'][idx].to(device) if config.PRED_USE_CONTEXT_MASK else None,
                             treatment_mask=batch['prev_treatment_mask'][idx].to(device) if config.PRED_USE_TREATMENT_MASK else None,
+                            pat_summary = batch['prev_summary'][idx].to(device) if config.PRED_USE_PAT_SUMMARY else None,
                             delta_t=None,
                         )
                     if context_steps > target_steps:
@@ -175,7 +177,7 @@ def train(override_cfg={}):
                         context_mask_batch[idx_gpu] = 1.0
 
             optimizer.zero_grad()
-            pred = model(measurements, treatments, datetime, demographics, future_treatments=future_treatments, future_datetime=future_datetime , context_mask=context_mask_batch if config.PRED_USE_CONTEXT_MASK else None, treatment_mask=treatment_mask if config.PRED_USE_TREATMENT_MASK else None, delta_t =batch['delta_t'].to(device) if config.PRED_USE_DELTA_T else None, future_targets = target, teacher_forcing_prob=tf_prob)
+            pred = model(measurements, treatments, datetime, demographics, future_treatments=future_treatments, future_datetime=future_datetime , context_mask=context_mask_batch if config.PRED_USE_CONTEXT_MASK else None, treatment_mask=treatment_mask if config.PRED_USE_TREATMENT_MASK else None, delta_t =batch['delta_t'].to(device) if config.PRED_USE_DELTA_T else None, future_targets = target, pat_summary=batch['pat_summary'].to(device) if config.PRED_USE_PAT_SUMMARY else None,teacher_forcing_prob=tf_prob)
             loss = masked_mse(pred, target, target_mask)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), config.PRED_GRAD_CLIP)
@@ -205,6 +207,7 @@ def train(override_cfg={}):
                     future_treatments=future_treatments, future_datetime=future_datetime,
                     context_mask=batch['context_mask'].to(device) if config.PRED_USE_CONTEXT_MASK else None,
                     treatment_mask = batch['treatment_mask'].to(device) if config.PRED_USE_TREATMENT_MASK else None,
+                    pat_summary = batch['pat_summary'].to(device) if config.PRED_USE_PAT_SUMMARY else None,
                     delta_t=batch['delta_t'].to(device) if config.PRED_USE_DELTA_T else None,)
 
                 val_loss += masked_mse(pred, target, target_mask).item()
@@ -248,6 +251,7 @@ def train(override_cfg={}):
                     'data_set':          config.DATA_PATH,
                     'scheduled_sampling_k':      config.PRED_SCHEDULED_SAMPLING_K,
                     'scheduled_sampling_min_real': config.PRED_SCHEDULED_SAMPLING_MIN_REAL,
+                    'uses_pat_summary' : config.PRED_USE_PAT_SUMMARY,
                 }
             }, f"{config.CHECKPOINT_DIR}/{checkpoint_name}")
             print(f" Saved: {checkpoint_name}")
