@@ -15,7 +15,7 @@ import config as config
 from data.dataset import HiRIDDataset
 from data.constants import N_MEASUREMENTS, N_TREATMENTS
 from models.gru_predictor import GRUPredictor
-from thesis_work.hirid_jepa.evaluation.evaluate_predictor import evaluate
+from evaluation.evaluate_predictor import evaluate
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -180,7 +180,13 @@ def train(override_cfg={}):
                         context_mask_batch[idx_gpu] = 1.0
 
             optimizer.zero_grad()
-            pred = model(measurements, treatments, datetime, demographics, future_treatments=future_treatments, future_datetime=future_datetime , context_mask=context_mask_batch if config.PRED_USE_CONTEXT_MASK else None, treatment_mask=treatment_mask if config.PRED_USE_TREATMENT_MASK else None, delta_t =batch['delta_t'].to(device) if config.PRED_USE_DELTA_T else None, future_targets = target, pat_summary=batch['pat_summary'].to(device) if config.PRED_USE_PAT_SUMMARY else None,teacher_forcing_prob=tf_prob, prev_future_treatments_mask = prev_future_treatments_mask if config.PRED_USE_TREATMENT_MASK else None)
+            pred = model(measurements, treatments, datetime, demographics, future_treatments=future_treatments, 
+                         future_datetime=future_datetime , context_mask=context_mask_batch if config.PRED_USE_CONTEXT_MASK else None, 
+                         treatment_mask=treatment_mask if config.PRED_USE_TREATMENT_MASK else None, 
+                         delta_t =batch['delta_t'].to(device) if config.PRED_USE_DELTA_T else None, 
+                         future_targets = target, pat_summary=batch['pat_summary'].to(device) if config.PRED_USE_PAT_SUMMARY else None,
+                         teacher_forcing_prob=tf_prob, 
+                         future_treatments_mask = future_treatments_mask if config.PRED_USE_TREATMENT_MASK else None)
             loss = masked_mse(pred, target, target_mask)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), config.PRED_GRAD_CLIP)
@@ -212,7 +218,7 @@ def train(override_cfg={}):
                     treatment_mask = batch['treatment_mask'].to(device) if config.PRED_USE_TREATMENT_MASK else None,
                     pat_summary = batch['pat_summary'].to(device) if config.PRED_USE_PAT_SUMMARY else None,
                     delta_t=batch['delta_t'].to(device) if config.PRED_USE_DELTA_T else None,
-                    future_treatments_mask = batch('future_treatments_mask').to(device if config.PRED_USE_TREATMENT_MASK else None))
+                    future_treatments_mask = batch['future_treatments_mask'].to(device) if config.PRED_USE_TREATMENT_MASK else None)
                 
 
                 val_loss += masked_mse(pred, target, target_mask).item()
