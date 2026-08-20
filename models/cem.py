@@ -121,42 +121,87 @@ def load_classifier(device):
         model.eval()
         return model
 
-def create_future_treatments_vector(theta, device, template, template_mask):
+def create_future_treatments_vector(theta, device, template, template_mask, resolution=1):
     """
     template / template_mask: (1, target_steps, n_treatments) — REAL recorded treatments
     for the window being planned. Only the CEM-controlled channels get overwritten;
     every other drug is left exactly as it actually was administered.
+
+    resolution splits the window into that many equal sub-blocks, each with its own
+    independently-optimized value per variable — a staircase across the window rather
+    than one flat value.
     """
     treatments      = template.clone()
     treatment_mask  = template_mask.clone()
     n_cem           = len(CEM_TREATMENT_LOCAL_IDX)
     no_treat_option = config.CEM_NO_TREAT_OPTION_ENABLED
-    treatments_flat = np.zeros(n_cem)
+    treatments_flat = np.zeros(n_cem * resolution)
+
+    window_len = template.shape[1]
+    assert window_len % resolution == 0, \
+        f"window length ({window_len}) must be divisible by resolution ({resolution})"
+    block_len = window_len // resolution
 
     for cem_i, local_idx in enumerate(CEM_TREATMENT_LOCAL_IDX):
         p1  = PERCENTILES[CEM_TREATMENT_NAMES[cem_i]]['p1']
         p99 = PERCENTILES[CEM_TREATMENT_NAMES[cem_i]]['p99']
 
-        if no_treat_option:
-            gate     = theta[cem_i]
-            dose_raw = theta[n_cem + cem_i]
-            val      = float(np.clip(dose_raw, p1, p99)) if gate > 0 else 0.0
-        else:
-            val      = float(np.clip(theta[cem_i], p1, p99))
+        for sub_i in range(resolution):
+            flat_idx = cem_i * resolution + sub_i
 
-        treatments_flat[cem_i] = val
+            if no_treat_option:
+                gate     = theta[flat_idx]
+                dose_raw = theta[n_cem * resolution + flat_idx]
+                val      = float(np.clip(dose_raw, p1, p99)) if gate > 0 else 0.0
+            else:
+                val      = float(np.clip(theta[flat_idx], p1, p99))
 
-        if local_idx in CONTINUOUS_CEM:
-            treatments[0, :, local_idx]     = val
-            treatment_mask[0, :, local_idx] = 1.0 if val != 0.0 else 0.0
-        elif local_idx in BINARY_CEM:
-            treatments[0, 0,  local_idx]    = val
-            treatments[0, 1:, local_idx]    = 0.0
-            treatment_mask[0, 0, local_idx] = 1.0 if val != 0.0 else 0.0
-            treatment_mask[0, 1:, local_idx] = 0.0
+            treatments_flat[flat_idx] = val
+            s, e = sub_i * block_len, (sub_i + 1) * block_len
+
+            if local_idx in CONTINUOUS_CEM:
+                treatments[0, s:e, local_idx]     = val
+                treatment_mask[0, s:e, local_idx] = 1.0 if val != 0.0 else 0.0
+            elif local_idx in BINARY_CEM:
+                treatments[0, s, local_idx]       = val
+                treatments[0, s+1:e, local_idx]   = 0.0
+                treatment_mask[0, s, local_idx]     = 1.0 if val != 0.0 else 0.0
+                treatment_mask[0, s+1:e, local_idx] = 0.0
 
     return treatments.to(device), treatment_mask.to(device), treatments_flat
+def treatment_values_resolved(cem_treatments, real_future_treatments, real_future_treatment_mask, resolution):
+    """
+    Per-sub-block values, not collapsed to a window mean: (n_cem_vars, resolution) for
+    both the CEM-chosen dose and the matching real observed dose in that same sub-block.
+    """
+    n_cem = len(CEM_TREATMENT_LOCAL_IDX)
+    window_len = real_future_treatments.shape[1]
+    block_len = window_len // resolution
 
+    cem_vals  = np.zeros((n_cem, resolution))
+    orig_vals = np.zeros((n_cem, resolution))
+
+    for cem_i, local_idx in enumerate(CEM_TREATMENT_LOCAL_IDX):
+        for sub_i in range(resolution):
+            s, e = sub_i * block_len, (sub_i + 1) * block_len
+
+            if local_idx in CONTINUOUS_CEM:
+                # .mean() over the block is exact here, not an approximation — the block
+                # was set to one constant value by create_future_treatments_vector, so
+                # this just reads that value back without hardcoding an index.
+                cem_vals[cem_i, sub_i] = cem_treatments[0, s:e, local_idx].mean().item()
+            else:
+                # binary: only the block's first position ever holds the chosen value
+                cem_vals[cem_i, sub_i] = cem_treatments[0, s, local_idx].item()
+
+            mask_block = real_future_treatment_mask[0, s:e, local_idx]
+            n_obs = mask_block.sum().item()
+            orig_vals[cem_i, sub_i] = (
+                (real_future_treatments[0, s:e, local_idx] * mask_block).sum().item() / n_obs
+                if n_obs > 0 else 0.0
+            )
+
+    return cem_vals, orig_vals
 def treatment_diff(cem_treatments, real_future_treatments, real_future_treatment_mask):
     per_variable_diff, cem_means, orig_means = [], [], []
     for cem_i, local_idx in enumerate(CEM_TREATMENT_LOCAL_IDX):
@@ -194,12 +239,12 @@ def evaluate_policy(theta, classifier, predictor, predictor_config, data, device
     future_datetime             = data['future_datetime'].to(device)
 
     future_treatments, future_treatment_mask, treatments_flat = create_future_treatments_vector(
-        theta, device, real_future_treatments, real_future_treatment_mask)
+        theta, device, real_future_treatments, real_future_treatment_mask, resolution=config.CEM_DOSAGE_RESOLUTION)
 
     with torch.no_grad():
         new_state = predictor(
             measurements, treatments, datetime, demographics,
-            future_treatments=future_treatments, future_datetime=future_datetime,
+            future_treatments=future_treatments, future_datetime=future_datetime, future_treatments_mask = future_treatment_mask if use_treatment_mask else None,
             context_mask=context_mask if use_context_mask else None,
             treatment_mask=treatment_mask if use_treatment_mask else None,
             delta_t=delta_t if use_delta_t else None)
@@ -288,7 +333,7 @@ def simulate_baseline(initial_data, predictor, predictor_config, classifier, dev
             sim_state = predictor(
                 sim_data['measurements'].to(device), sim_data['treatments'].to(device),
                 sim_data['datetime'].to(device), sim_data['demographics'].to(device),
-                future_treatments=real_future_treatments, future_datetime=future_datetime,
+                future_treatments=real_future_treatments, future_datetime=future_datetime, future_treatments_mask = real_future_treatment_mask if use_treatment_mask else None,
                 context_mask=sim_data['context_mask'].to(device) if use_context_mask else None,
                 treatment_mask=sim_data['treatments_mask'].to(device) if use_treatment_mask else None,
                 delta_t=sim_data['delta_t'].to(device) if use_delta_t else None)
@@ -354,9 +399,10 @@ def cem(patient_i, classifier, predictor, predictor_config, device, verbose=True
         print(f"{'='*60}")
 
     n_elite  = int(np.round(config.CEM_ELITE_FRAC * config.CEM_BATCH_SIZE))
-    n_params = 2 * len(CEM_TREATMENT_LOCAL_IDX) if config.CEM_NO_TREAT_OPTION_ENABLED else len(CEM_TREATMENT_LOCAL_IDX)
+    n_params = (2 if config.CEM_NO_TREAT_OPTION_ENABLED else 1) * len(CEM_TREATMENT_LOCAL_IDX) * config.CEM_DOSAGE_RESOLUTION
     rewards_total = np.zeros(config.CEM_NUM_STEPS)
     all_per_variable_diff, all_cem_means, all_orig_means = [], [], []
+    all_cem_values_resolved, all_orig_values_resolved = [], []   
     steps_executed = 0
     mortality_predicted = None
     sofa_before_first = sofa_predicted_last = None
@@ -398,6 +444,13 @@ def cem(patient_i, classifier, predictor, predictor_config, device, verbose=True
         all_per_variable_diff.append(per_var_diff.copy())
         all_cem_means.append(step_cem_means.copy())
         all_orig_means.append(step_orig_means.copy())
+
+        step_cem_values, step_orig_values = treatment_values_resolved(
+        chosen_treatments, data['real_future_treatments'].to(device), data['real_future_treatment_mask'].to(device),
+        config.CEM_DOSAGE_RESOLUTION)
+        all_cem_values_resolved.append(step_cem_values.copy())
+        all_orig_values_resolved.append(step_orig_values.copy())
+
         steps_executed += 1
 
         data = _advance_context(data, target_steps, context_steps, new_state, context_mask_predicted,
@@ -421,6 +474,8 @@ def cem(patient_i, classifier, predictor, predictor_config, device, verbose=True
     cem_means_per_step  = np.array(all_cem_means)
     orig_means_per_step = np.array(all_orig_means)
     avg_per_var_diff    = np.array(all_per_variable_diff).mean(axis=0)
+    cem_values_resolved  = np.array(all_cem_values_resolved)   # (steps_executed, n_cem_vars, resolution)
+    orig_values_resolved = np.array(all_orig_values_resolved)  # (steps_executed, n_cem_vars, resolution)
 
     f = h5py.File(config.CEM_DATASET, 'r')
     windows = f['windows']['test'][:]
@@ -466,6 +521,7 @@ def cem(patient_i, classifier, predictor, predictor_config, device, verbose=True
         'baseline_sofa': baseline_simulated_sofa,
         'sofa_improvement_vs_baseline': (baseline_simulated_sofa - sofa_predicted_last) if sofa_predicted_last is not None else None,
         'cem_means': cem_means_per_step, 'orig_means': orig_means_per_step,
+        'cem_values_resolved': cem_values_resolved, 'orig_values_resolved': orig_values_resolved,  
         'treatment_diff': avg_per_var_diff, 'total_reward': rewards_total.sum(),
         'steps_executed': steps_executed,
     }
@@ -494,6 +550,8 @@ def run_cem_evaluation(n_patients, classifier, predictor, predictor_config, devi
         'sofa_improvement':   np.array([r['sofa_improvement'] for r in all_results if r['sofa_improvement'] is not None]),
         'cem_means':          np.array([r['cem_means'] for r in all_results]),
         'orig_means':         np.array([r['orig_means'] for r in all_results]),
+        'cem_values_resolved':  np.array([r['cem_values_resolved']  for r in all_results]),   # new
+        'orig_values_resolved': np.array([r['orig_values_resolved'] for r in all_results]),
         'treatment_diff':     np.array([r['treatment_diff'] for r in all_results]),
         'total_reward':       np.array([r['total_reward'] for r in all_results]),
     }
@@ -512,7 +570,7 @@ def load_evaluation(path):
     with open(path) as f:
         data = json.load(f)
     for k in ['improvement', 'cem_mortality', 'baseline_mortality', 'actual_mortality',
-              'sofa_improvement', 'cem_means', 'orig_means', 'treatment_diff', 'total_reward']:
+              'sofa_improvement', 'cem_means', 'orig_means', 'treatment_diff', 'total_reward','cem_values_resolved', 'orig_values_resolved']:
         if k in data:
             data[k] = np.array(data[k])
     return data

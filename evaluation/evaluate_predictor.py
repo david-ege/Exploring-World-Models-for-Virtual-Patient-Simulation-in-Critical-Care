@@ -47,7 +47,6 @@ def evaluate(checkpoint_name=None, results_dir=None):
             'num_layers':         config.PRED_NUM_LAYERS,
             'dropout':            config.PRED_DROPOUT,
             'target_steps':       config.TARGET_STEPS,
-            'encoder_dim':        config.PRED_ENCODER_DIM,
             'n_measurements':     N_MEASUREMENTS,
             'n_treatments':       N_TREATMENTS,
             'measurement_subset': None,
@@ -99,6 +98,7 @@ def evaluate(checkpoint_name=None, results_dir=None):
             context_mask = batch['context_mask'].to(device)
             treatment_mask = batch['treatment_mask'].to(device)
             delta_t      = batch['delta_t'].to(device)
+            future_treatments_mask = batch['future_treatments_mask'].to(device)
 
             pred = model(
                 measurements=measurements, treatments=treatments, datetime=datetime,
@@ -108,6 +108,7 @@ def evaluate(checkpoint_name=None, results_dir=None):
                 treatment_mask=treatment_mask if use_treatment_mask else None,
                 pat_summary = batch['pat_summary'].to(device) if use_pat_summary  else None,
                 delta_t=delta_t if use_delta_t else None,
+                future_treatments_mask = future_treatments_mask if use_treatment_mask else None,
             )
 
             last_step = measurements[:, -1:, :].repeat(1, cfg['target_steps'], 1)

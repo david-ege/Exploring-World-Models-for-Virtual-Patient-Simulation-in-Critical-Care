@@ -58,11 +58,11 @@ CEM_TREATMENTS = [
     {'name': 'IN',                  'local_idx': 1,  'type': 'continuous'},
     {'name': 'norepinephrine',      'local_idx': 14, 'type': 'continuous'},
     {'name': 'epinephrine',         'local_idx': 15, 'type': 'continuous'},
-    {'name': 'dobutamine',          'local_idx': 16, 'type': 'continuous'},
-    {'name': 'Loop diuretics',      'local_idx': 34, 'type': 'binary'},
-    {'name': 'Propofol',            'local_idx': 44, 'type': 'continuous'},
-    {'name': 'Insulin Kurzwirksam', 'local_idx': 47, 'type': 'binary'},
-    {'name': 'Heparin',             'local_idx': 58, 'type': 'continuous'},
+   # {'name': 'dobutamine',          'local_idx': 16, 'type': 'continuous'},
+   # {'name': 'Loop diuretics',      'local_idx': 34, 'type': 'binary'},
+   # {'name': 'Propofol',            'local_idx': 44, 'type': 'continuous'},
+   # {'name': 'Insulin Kurzwirksam', 'local_idx': 47, 'type': 'binary'},
+   # {'name': 'Heparin',             'local_idx': 58, 'type': 'continuous'},
 ]
 # SOFA Score variable indices
 SOFA_MEAS_LOCAL = {

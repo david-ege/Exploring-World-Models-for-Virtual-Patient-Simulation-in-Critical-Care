@@ -28,6 +28,8 @@ class GRUPredictor(nn.Module):
         self.demo_proj = nn.Sequential(nn.Linear(demo_in_dim, hidden_dim), nn.Tanh())
 
         dec_in_dim = n_measurements + n_treatments + 1
+        if use_treatment_mask:
+            dec_in_dim += n_treatments
         self.decoder_cell = nn.GRUCell(dec_in_dim, hidden_dim)
         self.decoder_head = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim), nn.ReLU(),
@@ -36,7 +38,7 @@ class GRUPredictor(nn.Module):
 
     def forward(self, measurements, treatments, datetime, demographics,
                 future_treatments, future_datetime,
-                context_mask=None, treatment_mask=None, delta_t=None,
+                context_mask=None, treatment_mask=None, future_treatments_mask = None,delta_t=None,
                 future_targets=None, teacher_forcing_prob=0.0, pat_summary = None):
         B = measurements.shape[0]
 
@@ -58,7 +60,11 @@ class GRUPredictor(nn.Module):
 
         preds = []
         for i in range(self.target_steps):
-            step_in = torch.cat([prev_meas, future_treatments[:, i], future_datetime[:, i]], dim=-1)
+            step_parts = [prev_meas, future_treatments[:, i]]
+            if self.use_treatment_mask:
+                step_parts.append(future_treatments_mask[:, i])
+            step_parts.append(future_datetime[:, i])
+            step_in = torch.cat(step_parts, dim=-1)
             h = self.decoder_cell(step_in, h)
             pred_i = self.decoder_head(h)
             preds.append(pred_i)
