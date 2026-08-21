@@ -81,6 +81,7 @@ def load_predictor(device, path=None):
         n_treatments=cfg['n_treatments'],
         use_context_mask=cfg.get('uses_context_mask', False),
         use_treatment_mask=cfg.get('uses_treatment_mask', False),
+        use_future_treatment_mask=cfg.get('uses_future_treatment_mask', False),
         use_delta_t=cfg.get('uses_delta_t', False),
         use_pat_summary=cfg.get('uses_pat_summary', False),
     ).to(device)
@@ -224,6 +225,7 @@ def treatment_diff(cem_treatments, real_future_treatments, real_future_treatment
 def evaluate_policy(theta, classifier, predictor, predictor_config, data, device):
     use_context_mask   = predictor_config.get('uses_context_mask', False)
     use_treatment_mask = predictor_config.get('uses_treatment_mask', False)
+    use_future_treatment_mask = predictor_config.get('uses_future_treatment_mask', False)
     use_delta_t          = predictor_config.get('uses_delta_t', False)
 
     measurements = data['measurements'].to(device)
@@ -244,7 +246,7 @@ def evaluate_policy(theta, classifier, predictor, predictor_config, data, device
     with torch.no_grad():
         new_state = predictor(
             measurements, treatments, datetime, demographics,
-            future_treatments=future_treatments, future_datetime=future_datetime, future_treatments_mask = future_treatment_mask if use_treatment_mask else None,
+            future_treatments=future_treatments, future_datetime=future_datetime, future_treatments_mask = future_treatment_mask if use_future_treatment_mask else None,
             context_mask=context_mask if use_context_mask else None,
             treatment_mask=treatment_mask if use_treatment_mask else None,
             delta_t=delta_t if use_delta_t else None)
@@ -320,6 +322,7 @@ def simulate_baseline(initial_data, predictor, predictor_config, classifier, dev
     target_steps  = predictor_config['target_steps']
     use_context_mask   = predictor_config.get('uses_context_mask', False)
     use_treatment_mask = predictor_config.get('uses_treatment_mask', False)
+    use_future_treatment_mask = predictor_config.get('uses_future_treatment_mask', False)
     use_delta_t          = predictor_config.get('uses_delta_t', False)
 
     sim_data = {k: v.clone() if isinstance(v, torch.Tensor) else v for k, v in initial_data.items()}
@@ -333,7 +336,7 @@ def simulate_baseline(initial_data, predictor, predictor_config, classifier, dev
             sim_state = predictor(
                 sim_data['measurements'].to(device), sim_data['treatments'].to(device),
                 sim_data['datetime'].to(device), sim_data['demographics'].to(device),
-                future_treatments=real_future_treatments, future_datetime=future_datetime, future_treatments_mask = real_future_treatment_mask if use_treatment_mask else None,
+                future_treatments=real_future_treatments, future_datetime=future_datetime, future_treatments_mask = real_future_treatment_mask if use_future_treatment_mask else None,
                 context_mask=sim_data['context_mask'].to(device) if use_context_mask else None,
                 treatment_mask=sim_data['treatments_mask'].to(device) if use_treatment_mask else None,
                 delta_t=sim_data['delta_t'].to(device) if use_delta_t else None)

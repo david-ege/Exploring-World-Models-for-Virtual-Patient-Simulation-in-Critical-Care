@@ -6,12 +6,12 @@ from data.constants import N_DEMOGRAPHICS
 class GRUPredictor(nn.Module):
     def __init__(self, hidden_dim=256, num_layers=2, dropout=0.1,
                  target_steps=12, n_measurements=None, n_treatments=None,
-                 use_context_mask=False, use_treatment_mask=False, use_delta_t=False, use_pat_summary = False, pat_summary_hidden=64):
+                 use_context_mask=False, use_treatment_mask=False, use_future_treatment_mask=False, use_delta_t=False, use_pat_summary = False, pat_summary_hidden=64):
         super().__init__()
         self.hidden_dim, self.num_layers = hidden_dim, num_layers
         self.target_steps = target_steps
         self.n_measurements = n_measurements
-        self.use_context_mask, self.use_treatment_mask, self.use_delta_t, self.use_pat_summary = use_context_mask, use_treatment_mask, use_delta_t, use_pat_summary
+        self.use_context_mask, self.use_treatment_mask, self.use_delta_t, self.use_pat_summary, self.use_future_treatment_mask = use_context_mask, use_treatment_mask, use_delta_t, use_pat_summary, use_future_treatment_mask
 
         enc_dim = n_measurements + n_treatments + 1
         if use_context_mask: enc_dim += n_measurements
@@ -61,7 +61,7 @@ class GRUPredictor(nn.Module):
         preds = []
         for i in range(self.target_steps):
             step_parts = [prev_meas, future_treatments[:, i]]
-            if self.use_treatment_mask:
+            if self.use_future_treatment_mask:
                 step_parts.append(future_treatments_mask[:, i])
             step_parts.append(future_datetime[:, i])
             step_in = torch.cat(step_parts, dim=-1)

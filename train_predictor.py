@@ -154,7 +154,7 @@ def train(override_cfg={}):
                     idx_gpu = idx.to(device)
                     prev_future_treatments = treatments[idx_gpu, -target_steps:, :]
                     prev_future_datetime   = datetime[idx_gpu, -target_steps:]
-                    prev_future_treatments_mask = treatment_mask[idx_gpu, -target_steps:, :]  if config.PRED_USE_TREATMENT_MASK else None
+                    prev_future_treatments_mask = treatment_mask[idx_gpu, -target_steps:, :]  if config.PRED_USE_FUTURE_TREATMENT_MASK else None
                     with torch.no_grad():
                         prev_pred = model(
                             measurements=batch['prev_measurements'][idx].to(device),
@@ -165,7 +165,7 @@ def train(override_cfg={}):
                             future_datetime=prev_future_datetime,
                             context_mask=batch['prev_context_mask'][idx].to(device) if config.PRED_USE_CONTEXT_MASK else None,
                             treatment_mask=batch['prev_treatment_mask'][idx].to(device) if config.PRED_USE_TREATMENT_MASK else None,
-                            future_treatment_mask= prev_future_treatments_mask if config.PRED_USE_TREATMENT_MASK else None,
+                            future_treatment_mask= prev_future_treatments_mask if config.PRED_USE_FUTURE_TREATMENT_MASK else None,
                             pat_summary = batch['prev_summary'][idx].to(device) if config.PRED_USE_PAT_SUMMARY else None,
                             delta_t=None,
                         )
@@ -186,7 +186,7 @@ def train(override_cfg={}):
                          delta_t =batch['delta_t'].to(device) if config.PRED_USE_DELTA_T else None, 
                          future_targets = target, pat_summary=batch['pat_summary'].to(device) if config.PRED_USE_PAT_SUMMARY else None,
                          teacher_forcing_prob=tf_prob, 
-                         future_treatments_mask = future_treatments_mask if config.PRED_USE_TREATMENT_MASK else None)
+                         future_treatments_mask = future_treatments_mask if config.PRED_USE_FUTURE_TREATMENT_MASK else None)
             loss = masked_mse(pred, target, target_mask)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), config.PRED_GRAD_CLIP)
@@ -218,7 +218,7 @@ def train(override_cfg={}):
                     treatment_mask = batch['treatment_mask'].to(device) if config.PRED_USE_TREATMENT_MASK else None,
                     pat_summary = batch['pat_summary'].to(device) if config.PRED_USE_PAT_SUMMARY else None,
                     delta_t=batch['delta_t'].to(device) if config.PRED_USE_DELTA_T else None,
-                    future_treatments_mask = batch['future_treatments_mask'].to(device) if config.PRED_USE_TREATMENT_MASK else None)
+                    future_treatments_mask = batch['future_treatments_mask'].to(device) if config.PRED_USE_FUTURE_TREATMENT_MASK else None)
                 
 
                 val_loss += masked_mse(pred, target, target_mask).item()
@@ -257,6 +257,7 @@ def train(override_cfg={}):
                     'weight_decay': weight_decay,
                     'uses_context_mask': config.PRED_USE_CONTEXT_MASK,
                     'uses_treatment_mask' : config.PRED_USE_TREATMENT_MASK,
+                    'uses_future_treatment_mask' : config.PRED_USE_FUTURE_TREATMENT_MASK,
                     'uses_delta_t':      config.PRED_USE_DELTA_T,
                     'data_set':          config.DATA_PATH,
                     'scheduled_sampling_k':      config.PRED_SCHEDULED_SAMPLING_K,

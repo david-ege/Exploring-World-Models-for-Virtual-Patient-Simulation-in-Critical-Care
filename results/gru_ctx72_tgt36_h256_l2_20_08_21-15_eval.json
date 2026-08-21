@@ -1,0 +1,715 @@
+{
+  "checkpoint": "/home/bbe9928/thesis_work/hirid_jepa/checkpoints/gru_ctx72_tgt36_h256_l2_20_08_21-15.pt",
+  "timestamp": "21_08_2026_10-18",
+  "config": {
+    "hidden_dim": 256,
+    "num_layers": 2,
+    "dropout": 0.3,
+    "target_steps": 36,
+    "context_steps": 72,
+    "n_measurements": 102,
+    "n_treatments": 94,
+    "measurement_subset": null,
+    "treatment_subset": null,
+    "weight_decay": 0.0001,
+    "uses_context_mask": true,
+    "uses_treatment_mask": true,
+    "uses_future_treatment_mask": true,
+    "uses_delta_t": false,
+    "data_set": "/home/bbe9928/thesis_work/hirid_jepa/data/Cardiovascular_common_subset.h5",
+    "scheduled_sampling_k": 15,
+    "scheduled_sampling_min_real": 0.5,
+    "uses_pat_summary": false
+  },
+  "summary": {
+    "n_variables_evaluated": 85,
+    "n_beating_persistence": 60,
+    "overall_model_mae": 0.5552793288932127,
+    "overall_persistence_mae": 0.6126250135547975,
+    "mean_improvement": 6.2744037334783265,
+    "model_auroc": null,
+    "persistence_auroc": null
+  },
+  "per_variable": [
+    {
+      "name": "Rhythmus",
+      "model_mae": 0.28172120451927185,
+      "persistence_mae": 0.9424275755882263,
+      "improvement_pct": 70.10685894420773,
+      "n_observations": 542114,
+      "beats_persistence": true
+    },
+    {
+      "name": "GCS Motorik",
+      "model_mae": 0.4293328821659088,
+      "persistence_mae": 0.8717630505561829,
+      "improvement_pct": 50.75119530565153,
+      "n_observations": 255906,
+      "beats_persistence": true
+    },
+    {
+      "name": "GCS Antwort",
+      "model_mae": 0.4583282470703125,
+      "persistence_mae": 0.9099076390266418,
+      "improvement_pct": 49.629146144920675,
+      "n_observations": 257608,
+      "beats_persistence": true
+    },
+    {
+      "name": "GCS Augen\ufffdffnen",
+      "model_mae": 0.5731938481330872,
+      "persistence_mae": 0.8965137004852295,
+      "improvement_pct": 36.064128431852026,
+      "n_observations": 257501,
+      "beats_persistence": true
+    },
+    {
+      "name": "a-BE",
+      "model_mae": 0.4925583302974701,
+      "persistence_mae": 0.7072175145149231,
+      "improvement_pct": 30.352639719999953,
+      "n_observations": 131990,
+      "beats_persistence": true
+    },
+    {
+      "name": "urinary Na+",
+      "model_mae": 0.5889322757720947,
+      "persistence_mae": 0.8421899676322937,
+      "improvement_pct": 30.071326137047162,
+      "n_observations": 1280,
+      "beats_persistence": true
+    },
+    {
+      "name": "a_HCO3-",
+      "model_mae": 0.506130039691925,
+      "persistence_mae": 0.7182069420814514,
+      "improvement_pct": 29.528662278716155,
+      "n_observations": 132178,
+      "beats_persistence": true
+    },
+    {
+      "name": "RASS",
+      "model_mae": 0.6322171092033386,
+      "persistence_mae": 0.8873894214630127,
+      "improvement_pct": 28.755392625593736,
+      "n_observations": 809421,
+      "beats_persistence": true
+    },
+    {
+      "name": "a_Lac",
+      "model_mae": 0.4264684021472931,
+      "persistence_mae": 0.5743902325630188,
+      "improvement_pct": 25.75284571878519,
+      "n_observations": 131020,
+      "beats_persistence": true
+    },
+    {
+      "name": "a_PO2",
+      "model_mae": 0.4189569354057312,
+      "persistence_mae": 0.5602811574935913,
+      "improvement_pct": 25.223804191465536,
+      "n_observations": 126915,
+      "beats_persistence": true
+    },
+    {
+      "name": "AWPmean",
+      "model_mae": 0.22816117107868195,
+      "persistence_mae": 0.2989081144332886,
+      "improvement_pct": 23.668458612687203,
+      "n_observations": 6389846,
+      "beats_persistence": true
+    },
+    {
+      "name": "NIBPs",
+      "model_mae": 0.515654981136322,
+      "persistence_mae": 0.6682113409042358,
+      "improvement_pct": 22.830555309263644,
+      "n_observations": 85582,
+      "beats_persistence": true
+    },
+    {
+      "name": "NIBPm",
+      "model_mae": 0.5282028913497925,
+      "persistence_mae": 0.6584279537200928,
+      "improvement_pct": 19.778179470439195,
+      "n_observations": 85939,
+      "beats_persistence": true
+    },
+    {
+      "name": "Ammoniak",
+      "model_mae": 0.39366990327835083,
+      "persistence_mae": 0.48966243863105774,
+      "improvement_pct": 19.603818422558994,
+      "n_observations": 2780,
+      "beats_persistence": true
+    },
+    {
+      "name": "bilirubine, total",
+      "model_mae": 0.3324595093727112,
+      "persistence_mae": 0.40286678075790405,
+      "improvement_pct": 17.47656415173703,
+      "n_observations": 19596,
+      "beats_persistence": true
+    },
+    {
+      "name": "NIBPd",
+      "model_mae": 0.547031581401825,
+      "persistence_mae": 0.6622971296310425,
+      "improvement_pct": 17.403902730701937,
+      "n_observations": 85582,
+      "beats_persistence": true
+    },
+    {
+      "name": "PCWP",
+      "model_mae": 0.7572808265686035,
+      "persistence_mae": 0.9162023067474365,
+      "improvement_pct": 17.345675622997735,
+      "n_observations": 54941,
+      "beats_persistence": true
+    },
+    {
+      "name": "Hb",
+      "model_mae": 0.6318691372871399,
+      "persistence_mae": 0.762702226638794,
+      "improvement_pct": 17.1538884746976,
+      "n_observations": 50897,
+      "beats_persistence": true
+    },
+    {
+      "name": "Zentral ven\u00f6se s\u00e4ttigung",
+      "model_mae": 0.6494477987289429,
+      "persistence_mae": 0.7821012139320374,
+      "improvement_pct": 16.9611570523175,
+      "n_observations": 35673,
+      "beats_persistence": true
+    },
+    {
+      "name": "ABPm",
+      "model_mae": 0.3814641535282135,
+      "persistence_mae": 0.45697149634361267,
+      "improvement_pct": 16.52342507564686,
+      "n_observations": 10763612,
+      "beats_persistence": true
+    },
+    {
+      "name": "a_Hb",
+      "model_mae": 0.6390248537063599,
+      "persistence_mae": 0.7654650211334229,
+      "improvement_pct": 16.518085599763033,
+      "n_observations": 126209,
+      "beats_persistence": true
+    },
+    {
+      "name": "a_pH",
+      "model_mae": 0.5989676117897034,
+      "persistence_mae": 0.7168398499488831,
+      "improvement_pct": 16.443315500328982,
+      "n_observations": 127907,
+      "beats_persistence": true
+    },
+    {
+      "name": "ABPd",
+      "model_mae": 0.37340375781059265,
+      "persistence_mae": 0.4465002715587616,
+      "improvement_pct": 16.370989762891796,
+      "n_observations": 10762005,
+      "beats_persistence": true
+    },
+    {
+      "name": "ABPs",
+      "model_mae": 0.3907316327095032,
+      "persistence_mae": 0.4615628123283386,
+      "improvement_pct": 15.345945931287197,
+      "n_observations": 10766200,
+      "beats_persistence": true
+    },
+    {
+      "name": "OUTurine/h",
+      "model_mae": 0.5856490135192871,
+      "persistence_mae": 0.6889932751655579,
+      "improvement_pct": 14.999313545032521,
+      "n_observations": 279554,
+      "beats_persistence": true
+    },
+    {
+      "name": "ZVD",
+      "model_mae": 0.4864208996295929,
+      "persistence_mae": 0.5687203407287598,
+      "improvement_pct": 14.470986037479882,
+      "n_observations": 9434572,
+      "beats_persistence": true
+    },
+    {
+      "name": "RR",
+      "model_mae": 0.45675012469291687,
+      "persistence_mae": 0.5327482223510742,
+      "improvement_pct": 14.265293523227484,
+      "n_observations": 7337786,
+      "beats_persistence": true
+    },
+    {
+      "name": "a_SO2",
+      "model_mae": 0.4974268972873688,
+      "persistence_mae": 0.5786710381507874,
+      "improvement_pct": 14.039780031681548,
+      "n_observations": 132260,
+      "beats_persistence": true
+    },
+    {
+      "name": "platelet count",
+      "model_mae": 0.5522320866584778,
+      "persistence_mae": 0.6410059928894043,
+      "improvement_pct": 13.849153863721064,
+      "n_observations": 47889,
+      "beats_persistence": true
+    },
+    {
+      "name": "packed red blood cells",
+      "model_mae": 0.2311507612466812,
+      "persistence_mae": 0.2680426239967346,
+      "improvement_pct": 13.763431427422091,
+      "n_observations": 21076,
+      "beats_persistence": true
+    },
+    {
+      "name": "v-Lac",
+      "model_mae": 0.4448424279689789,
+      "persistence_mae": 0.5129220485687256,
+      "improvement_pct": 13.272898053362747,
+      "n_observations": 4695,
+      "beats_persistence": true
+    },
+    {
+      "name": "alkaline phosphatase",
+      "model_mae": 0.4758388102054596,
+      "persistence_mae": 0.547318696975708,
+      "improvement_pct": 13.060011866070232,
+      "n_observations": 10174,
+      "beats_persistence": true
+    },
+    {
+      "name": "gamma-GT",
+      "model_mae": 0.5110207796096802,
+      "persistence_mae": 0.5854354500770569,
+      "improvement_pct": 12.71099494531498,
+      "n_observations": 9909,
+      "beats_persistence": true
+    },
+    {
+      "name": "a_COHb",
+      "model_mae": 0.6344740390777588,
+      "persistence_mae": 0.7196803689002991,
+      "improvement_pct": 11.839468395218145,
+      "n_observations": 132260,
+      "beats_persistence": true
+    },
+    {
+      "name": "a_pCO2",
+      "model_mae": 0.5650080442428589,
+      "persistence_mae": 0.639768660068512,
+      "improvement_pct": 11.685570189956952,
+      "n_observations": 125841,
+      "beats_persistence": true
+    },
+    {
+      "name": "SpO2",
+      "model_mae": 0.45806044340133667,
+      "persistence_mae": 0.5094590187072754,
+      "improvement_pct": 10.088853748503624,
+      "n_observations": 10903426,
+      "beats_persistence": true
+    },
+    {
+      "name": "PAPd",
+      "model_mae": 0.4397673010826111,
+      "persistence_mae": 0.48867201805114746,
+      "improvement_pct": 10.007676961650326,
+      "n_observations": 2725129,
+      "beats_persistence": true
+    },
+    {
+      "name": "PAPm",
+      "model_mae": 0.3768491744995117,
+      "persistence_mae": 0.41443464159965515,
+      "improvement_pct": 9.069093972229059,
+      "n_observations": 2844124,
+      "beats_persistence": true
+    },
+    {
+      "name": "K+",
+      "model_mae": 0.6838447451591492,
+      "persistence_mae": 0.7457144856452942,
+      "improvement_pct": 8.296706269907961,
+      "n_observations": 137998,
+      "beats_persistence": true
+    },
+    {
+      "name": "PAPs",
+      "model_mae": 0.3674931228160858,
+      "persistence_mae": 0.40013179183006287,
+      "improvement_pct": 8.15697969528969,
+      "n_observations": 2845355,
+      "beats_persistence": true
+    },
+    {
+      "name": "Stabk. Neut.",
+      "model_mae": 0.7904369235038757,
+      "persistence_mae": 0.8513844609260559,
+      "improvement_pct": 7.158638690197283,
+      "n_observations": 13000,
+      "beats_persistence": true
+    },
+    {
+      "name": "Ca2+ total",
+      "model_mae": 0.49841511249542236,
+      "persistence_mae": 0.5309078693389893,
+      "improvement_pct": 6.120225131343837,
+      "n_observations": 2001,
+      "beats_persistence": true
+    },
+    {
+      "name": "Factor VII",
+      "model_mae": 0.640652060508728,
+      "persistence_mae": 0.6818681359291077,
+      "improvement_pct": 6.044581532500992,
+      "n_observations": 1430,
+      "beats_persistence": true
+    },
+    {
+      "name": "ETCO2",
+      "model_mae": 0.3243712782859802,
+      "persistence_mae": 0.34519416093826294,
+      "improvement_pct": 6.032223313304197,
+      "n_observations": 6296812,
+      "beats_persistence": true
+    },
+    {
+      "name": "Mg_lab",
+      "model_mae": 0.7453721761703491,
+      "persistence_mae": 0.7917714715003967,
+      "improvement_pct": 5.860187819361762,
+      "n_observations": 32682,
+      "beats_persistence": true
+    },
+    {
+      "name": "Segm. Neut.",
+      "model_mae": 0.785265326499939,
+      "persistence_mae": 0.8318425416946411,
+      "improvement_pct": 5.599282659890703,
+      "n_observations": 13000,
+      "beats_persistence": true
+    },
+    {
+      "name": "Factor V",
+      "model_mae": 0.7226254940032959,
+      "persistence_mae": 0.7653677463531494,
+      "improvement_pct": 5.58453796276539,
+      "n_observations": 1394,
+      "beats_persistence": true
+    },
+    {
+      "name": "Na+",
+      "model_mae": 0.6588467955589294,
+      "persistence_mae": 0.6953319907188416,
+      "improvement_pct": 5.247161880498741,
+      "n_observations": 137857,
+      "beats_persistence": true
+    },
+    {
+      "name": "factor X",
+      "model_mae": 0.745366632938385,
+      "persistence_mae": 0.7819938659667969,
+      "improvement_pct": 4.6838261299056105,
+      "n_observations": 1430,
+      "beats_persistence": true
+    },
+    {
+      "name": "glucose",
+      "model_mae": 0.6094009280204773,
+      "persistence_mae": 0.6339779496192932,
+      "improvement_pct": 3.87663665803748,
+      "n_observations": 242533,
+      "beats_persistence": true
+    },
+    {
+      "name": "C-reactive protein",
+      "model_mae": 0.7327010631561279,
+      "persistence_mae": 0.7601118087768555,
+      "improvement_pct": 3.6061465305789575,
+      "n_observations": 39155,
+      "beats_persistence": true
+    },
+    {
+      "name": "Ca2+ ionizied",
+      "model_mae": 0.6700961589813232,
+      "persistence_mae": 0.6949774622917175,
+      "improvement_pct": 3.5801597404823915,
+      "n_observations": 131064,
+      "beats_persistence": true
+    },
+    {
+      "name": "MCHC",
+      "model_mae": 0.7411714792251587,
+      "persistence_mae": 0.7666152119636536,
+      "improvement_pct": 3.318970500640317,
+      "n_observations": 48321,
+      "beats_persistence": true
+    },
+    {
+      "name": "Cl-",
+      "model_mae": 0.6791588664054871,
+      "persistence_mae": 0.7012129426002502,
+      "improvement_pct": 3.145132506108894,
+      "n_observations": 130175,
+      "beats_persistence": true
+    },
+    {
+      "name": "AMYL-S",
+      "model_mae": 0.9645881652832031,
+      "persistence_mae": 0.9857729077339172,
+      "improvement_pct": 2.1490489629516496,
+      "n_observations": 1842,
+      "beats_persistence": true
+    },
+    {
+      "name": "a_MetHb",
+      "model_mae": 0.7524517774581909,
+      "persistence_mae": 0.7680361866950989,
+      "improvement_pct": 2.0291243442536855,
+      "n_observations": 132224,
+      "beats_persistence": true
+    },
+    {
+      "name": "Urea",
+      "model_mae": 0.6998874545097351,
+      "persistence_mae": 0.7112482190132141,
+      "improvement_pct": 1.5972995361929976,
+      "n_observations": 40390,
+      "beats_persistence": true
+    },
+    {
+      "name": "aPTT",
+      "model_mae": 0.6269723773002625,
+      "persistence_mae": 0.6308121681213379,
+      "improvement_pct": 0.6087058898231135,
+      "n_observations": 10986,
+      "beats_persistence": true
+    },
+    {
+      "name": "MCV",
+      "model_mae": 0.720583438873291,
+      "persistence_mae": 0.723058819770813,
+      "improvement_pct": 0.34234848256281536,
+      "n_observations": 48393,
+      "beats_persistence": true
+    },
+    {
+      "name": "MCH",
+      "model_mae": 0.6956626176834106,
+      "persistence_mae": 0.6970458030700684,
+      "improvement_pct": 0.19843536544738027,
+      "n_observations": 48357,
+      "beats_persistence": true
+    },
+    {
+      "name": "Neutr",
+      "model_mae": 0.6237363219261169,
+      "persistence_mae": 0.6226846575737,
+      "improvement_pct": -0.16889196475706747,
+      "n_observations": 17221,
+      "beats_persistence": false
+    },
+    {
+      "name": "urinary creatinin",
+      "model_mae": 0.8066551089286804,
+      "persistence_mae": 0.804871141910553,
+      "improvement_pct": -0.2216462891057036,
+      "n_observations": 1332,
+      "beats_persistence": false
+    },
+    {
+      "name": "phosphate",
+      "model_mae": 0.7535610795021057,
+      "persistence_mae": 0.7464572787284851,
+      "improvement_pct": -0.9516687660573453,
+      "n_observations": 34514,
+      "beats_persistence": false
+    },
+    {
+      "name": "HR",
+      "model_mae": 0.29623204469680786,
+      "persistence_mae": 0.29284217953681946,
+      "improvement_pct": -1.1575740780751076,
+      "n_observations": 11173099,
+      "beats_persistence": false
+    },
+    {
+      "name": "Fibrinogen",
+      "model_mae": 0.8653308749198914,
+      "persistence_mae": 0.8498672842979431,
+      "improvement_pct": -1.8195300498856648,
+      "n_observations": 5273,
+      "beats_persistence": false
+    },
+    {
+      "name": "total white blood cell count",
+      "model_mae": 0.5728731751441956,
+      "persistence_mae": 0.5602903366088867,
+      "improvement_pct": -2.2457711142165104,
+      "n_observations": 48509,
+      "beats_persistence": false
+    },
+    {
+      "name": "albumin",
+      "model_mae": 0.7626847624778748,
+      "persistence_mae": 0.7439258098602295,
+      "improvement_pct": -2.5216160494780704,
+      "n_observations": 2146,
+      "beats_persistence": false
+    },
+    {
+      "name": "creatinine",
+      "model_mae": 0.782728374004364,
+      "persistence_mae": 0.7620728015899658,
+      "improvement_pct": -2.710446084849516,
+      "n_observations": 42890,
+      "beats_persistence": false
+    },
+    {
+      "name": "lymphocyte",
+      "model_mae": 0.5275746583938599,
+      "persistence_mae": 0.5108417272567749,
+      "improvement_pct": -3.275560754784257,
+      "n_observations": 17202,
+      "beats_persistence": false
+    },
+    {
+      "name": "ST1",
+      "model_mae": 0.2987928092479706,
+      "persistence_mae": 0.2885487675666809,
+      "improvement_pct": -3.550194224594061,
+      "n_observations": 7913075,
+      "beats_persistence": false
+    },
+    {
+      "name": "CO",
+      "model_mae": 0.37184664607048035,
+      "persistence_mae": 0.35794487595558167,
+      "improvement_pct": -3.883774024641662,
+      "n_observations": 2797021,
+      "beats_persistence": false
+    },
+    {
+      "name": "OUT",
+      "model_mae": 0.316072553396225,
+      "persistence_mae": 0.2967945635318756,
+      "improvement_pct": -6.495398579724632,
+      "n_observations": 687906,
+      "beats_persistence": false
+    },
+    {
+      "name": "SvO2(m)",
+      "model_mae": 0.5119161605834961,
+      "persistence_mae": 0.4722037613391876,
+      "improvement_pct": -8.410013323841948,
+      "n_observations": 2842072,
+      "beats_persistence": false
+    },
+    {
+      "name": "Spitzendruck",
+      "model_mae": 0.24216845631599426,
+      "persistence_mae": 0.22137048840522766,
+      "improvement_pct": -9.395095100795503,
+      "n_observations": 6392066,
+      "beats_persistence": false
+    },
+    {
+      "name": "Plateaudruck",
+      "model_mae": 0.31290456652641296,
+      "persistence_mae": 0.284738689661026,
+      "improvement_pct": -9.891833420641817,
+      "n_observations": 1635679,
+      "beats_persistence": false
+    },
+    {
+      "name": "ASAT",
+      "model_mae": 0.48915591835975647,
+      "persistence_mae": 0.4419252276420593,
+      "improvement_pct": -10.68748461582556,
+      "n_observations": 25315,
+      "beats_persistence": false
+    },
+    {
+      "name": "INR",
+      "model_mae": 0.8580527305603027,
+      "persistence_mae": 0.7672338485717773,
+      "improvement_pct": -11.837183950836728,
+      "n_observations": 33792,
+      "beats_persistence": false
+    },
+    {
+      "name": "Troponin-T",
+      "model_mae": 1.0142643451690674,
+      "persistence_mae": 0.9006200432777405,
+      "improvement_pct": -12.618451336895276,
+      "n_observations": 28335,
+      "beats_persistence": false
+    },
+    {
+      "name": "ALAT",
+      "model_mae": 0.5842808485031128,
+      "persistence_mae": 0.5162410736083984,
+      "improvement_pct": -13.179845303499981,
+      "n_observations": 28964,
+      "beats_persistence": false
+    },
+    {
+      "name": "ST2",
+      "model_mae": 0.3258662819862366,
+      "persistence_mae": 0.27728214859962463,
+      "improvement_pct": -17.521551110296652,
+      "n_observations": 4740663,
+      "beats_persistence": false
+    },
+    {
+      "name": "ST3",
+      "model_mae": 0.3338557183742523,
+      "persistence_mae": 0.2758970856666565,
+      "improvement_pct": -21.00733777870434,
+      "n_observations": 4417764,
+      "beats_persistence": false
+    },
+    {
+      "name": "creatine kinase-MB",
+      "model_mae": 0.7896284461021423,
+      "persistence_mae": 0.6496413946151733,
+      "improvement_pct": -21.548357701234977,
+      "n_observations": 31834,
+      "beats_persistence": false
+    },
+    {
+      "name": "creatine kinase",
+      "model_mae": 0.4158003628253937,
+      "persistence_mae": 0.27080944180488586,
+      "improvement_pct": -53.53983230945529,
+      "n_observations": 34917,
+      "beats_persistence": false
+    },
+    {
+      "name": "T Central",
+      "model_mae": 0.37431108951568604,
+      "persistence_mae": 0.22215168178081512,
+      "improvement_pct": -68.49347550067087,
+      "n_observations": 3147906,
+      "beats_persistence": false
+    },
+    {
+      "name": "ICP",
+      "model_mae": 0.6223857402801514,
+      "persistence_mae": 0.3466132879257202,
+      "improvement_pct": -79.56199659994847,
+      "n_observations": 239499,
+      "beats_persistence": false
+    }
+  ]
+}

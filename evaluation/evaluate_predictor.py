@@ -66,6 +66,7 @@ def evaluate(checkpoint_name=None, results_dir=None):
 
     use_context_mask = cfg.get('uses_context_mask', False)
     use_treatment_mask = cfg.get('uses_treatment_mask', False)
+    use_future_treatment_mask = cfg.get('uses_future_treatment_mask', False)
     use_delta_t      = cfg.get('uses_delta_t', False)
     use_pat_summary = cfg.get('uses_pat_summary', False)
     model = GRUPredictor(
@@ -78,7 +79,8 @@ def evaluate(checkpoint_name=None, results_dir=None):
         use_context_mask=use_context_mask,
         use_treatment_mask=use_treatment_mask,
         use_delta_t=use_delta_t,
-        use_pat_summary=use_pat_summary
+        use_pat_summary=use_pat_summary,
+        use_future_treatment_mask=use_future_treatment_mask
     ).to(device)
     model.load_state_dict(state_dict)
     model.eval()
@@ -108,7 +110,7 @@ def evaluate(checkpoint_name=None, results_dir=None):
                 treatment_mask=treatment_mask if use_treatment_mask else None,
                 pat_summary = batch['pat_summary'].to(device) if use_pat_summary  else None,
                 delta_t=delta_t if use_delta_t else None,
-                future_treatments_mask = future_treatments_mask if use_treatment_mask else None,
+                future_treatments_mask = future_treatments_mask if use_future_treatment_mask else None,
             )
 
             last_step = measurements[:, -1:, :].repeat(1, cfg['target_steps'], 1)
